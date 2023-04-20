@@ -5,9 +5,10 @@ namespace ehal
     struct Config
     {
         bool FirstTimeConfig;
-        String HostName;
+        String DevicePassword;
         String WifiSsid;
         String WifiPassword;
+        String HostName;
         String MqttServer;
         uint16_t MqttPort;
         String MqttUserName;
