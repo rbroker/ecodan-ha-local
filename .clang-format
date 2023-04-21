@@ -1,0 +1,5 @@
+IndentWidth: 4
+NamespaceIndentation: All
+BreakBeforeBraces: Allman
+ColumnLimit: 0
+PointerAlignment: Left
