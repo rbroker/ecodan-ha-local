@@ -57,10 +57,14 @@ namespace ehal
 <nav>
 <br />
 <form method="post" action="save">        
-    <h2>Security:</h2>
+    <h2>Device:</h2>
     <div class="row">
         <label class="column column-25" for="device_pw">Device Password:</label>
         <input class="column column-75" type="password" id="device_pw" max-length="100" name="device_pw" value="{{device_pw}}" />
+    </div>
+    <div class="row">
+        <label class="column column-25" for="device_tz">Time Zone:</label>
+        <input class="column column-75" type="text" id="device_tz" name="device_tz" value="{{device_tz}}" />
     </div>
     <br />
     <h2>WiFi Configuration:</h2>
@@ -163,6 +167,14 @@ namespace ehal
 <div class="row">
     <p class="column column-25">Device Heap Low Watermark:</p>
     <p class="column column-75">{{device_min_heap}}</p>
+</div>
+<div class="row">
+    <p class="column column-25">Device Free PSRAM:</p>
+    <p class="column column-75">{{device_free_psram}}</p>
+</div>
+<div class="row">
+    <p class="column column-25">Device Total PSRAM:</p>
+    <p class="column column-75">{{device_total_psram}}</p>
 </div>
 <br />
 <h2>WiFi Info</h2>

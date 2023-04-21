@@ -39,6 +39,16 @@ namespace ehal
         xhttp.send();
     }
 
+    function select_configured_tz() {
+        let select = document.getElementById('device_tz');
+        select.value = {{device_tz}};
+    }
+
+    function on_load_processing() {
+        inject_ssid_list();
+        select_configured_tz();
+    }
+
     window.addEventListener('load', inject_ssid_list);)";
 
     const char* SCRIPT_WAIT_REBOOT PROGMEM = R"(function check_alive() {

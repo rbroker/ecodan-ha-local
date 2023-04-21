@@ -1,5 +1,5 @@
 #include <WiFi.h>
-#include <pgmspace.h>
+#include <time.h>
 
 #include <chrono>
 #include <deque>
@@ -10,6 +10,7 @@
 #include "ehal_config.h"
 #include "ehal_diagnostics.h"
 #include "ehal_http.h"
+#include "ehal_mqtt.h"
 #include "ehal_thirdparty.h"
 
 bool initialize_wifi_access_point()
@@ -20,6 +21,13 @@ bool initialize_wifi_access_point()
 
     if (!ehal::requires_first_time_configuration())
     {
+        if (!config.HostName.isEmpty())
+        {
+            if (!WiFi.setHostname(config.HostName.c_str()))
+            {
+                ehal::log_web("Failed to configure hostname from saved settings!");
+            }
+        }
         WiFi.begin(config.WifiSsid.c_str(), config.WifiPassword.c_str());
     }
 
@@ -44,6 +52,19 @@ bool initialize_wifi_access_point()
     return true;
 }
 
+void update_time(bool force)
+{
+    static std::chrono::steady_clock::time_point last_time_update = std::chrono::steady_clock::now();
+
+    std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
+    if (force || now - last_time_update > std::chrono::hours(24))
+    {
+        last_time_update = now;
+        configTzTime(ehal::config_instance().TimeZone.c_str(), "pool.ntp.org");
+        ehal::log_web("Updated timezone configuration using: '%s'", ehal::config_instance().TimeZone.c_str());
+    }
+}
+
 void setup()
 {
     if (!ehal::load_saved_configuration())
@@ -55,6 +76,8 @@ void setup()
     ehal::log_web("Configuration parameters loaded from NVS");
 
     initialize_wifi_access_point();
+
+    update_time(/* force =*/true);
 
     if (ehal::requires_first_time_configuration())
     {
@@ -69,10 +92,17 @@ void setup()
         ehal::http::initialize_default();
     }
 
-    ehal::log_web("Server startup successful, starting request processing.");
+    ehal::mqtt::initialize();
+
+    ehal::log_web("Ecodan HomeAssistant Bridge startup successful, starting request processing.");
 }
 
 void loop()
 {
     ehal::http::handle_loop();
+    ehal::mqtt::handle_loop();
+
+    update_time(/* force =*/false);
+
+    delay(25);
 }

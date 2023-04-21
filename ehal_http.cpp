@@ -96,12 +96,13 @@ namespace ehal::http
         if (show_login_if_required())
             return;
 
-        String page{FPSTR(PAGE_TEMPLATE)};
+        String page{FPSTR(PAGE_TEMPLATE)};        
         page.replace(F("{{PAGE_SCRIPT}}"), FPSTR(SCRIPT_INJECT_AP_SSIDS));
         page.replace(F("{{PAGE_BODY}}"), FPSTR(BODY_TEMPLATE_CONFIG));
 
         Config& config = config_instance();
         page.replace(F("{{device_pw}}"), config.DevicePassword);
+        page.replace(F("{{device_tz}}"), config.TimeZone);
         page.replace(F("{{wifi_ssid}}"), config.WifiSsid);
         page.replace(F("{{wifi_pw}}"), config.WifiPassword);
         page.replace(F("{{hostname}}"), config.HostName);
@@ -118,6 +119,7 @@ namespace ehal::http
     {
         Config config;
         config.DevicePassword = server.arg("device_pw");
+        config.TimeZone = server.arg("device_tz");
         config.WifiSsid = server.arg("wifi_ssid");
         config.WifiPassword = server.arg("wifi_pw");
         config.HostName = server.arg("hostname");
@@ -193,7 +195,7 @@ namespace ehal::http
         if (show_login_if_required())
             return;
 
-        String page{FPSTR(PAGE_TEMPLATE)};
+        String page{FPSTR(PAGE_TEMPLATE)};        
         page.replace(F("{{PAGE_SCRIPT}}"), FPSTR(SCRIPT_UPDATE_DIAGNOSTIC_LOGS));
         page.replace(F("{{PAGE_BODY}}"), FPSTR(BODY_TEMPLATE_DIAGNOSTICS));
 
@@ -207,6 +209,8 @@ namespace ehal::http
         page.replace(F("{{device_free_heap}}"), String(ESP.getFreeHeap()));
         page.replace(F("{{device_total_heap}}"), String(ESP.getHeapSize()));
         page.replace(F("{{device_min_heap}}"), String(ESP.getMinFreeHeap()));
+        page.replace(F("{{device_free_psram}}"), String(ESP.getFreePsram()));
+        page.replace(F("{{device_total_psram}}"), String(ESP.getPsramSize()));
 
         page.replace(F("{{wifi_hostname}}"), WiFi.getHostname());
         page.replace(F("{{wifi_ip}}"), WiFi.localIP().toString());
@@ -375,7 +379,6 @@ namespace ehal::http
             dnsServer->processNextRequest();
         }
 
-        server.handleClient();
-        delay(25);
+        server.handleClient();        
     }
 } // namespace ehal::http

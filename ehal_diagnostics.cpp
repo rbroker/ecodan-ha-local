@@ -1,6 +1,8 @@
 #include "ehal_diagnostics.h"
 #include "ehal_thirdparty.h"
 
+#include "time.h"
+
 #include <cstdio>
 #include <deque>
 #include <mutex>
@@ -20,7 +22,14 @@ namespace ehal
         va_list args;
         va_start(args, fmt);
 
-        vsnprintf(buffer, sizeof(buffer), fmt, args);
+        // Include timestamp in diagnostic log message.
+        time_t now = time(0);
+        struct tm t = *localtime(&now);
+        strftime(buffer, sizeof(buffer), "[%T] ", &t);
+        const size_t offset = 11; // "[14:55:02] "
+
+        // Format remainder of log message into buffer.
+        vsnprintf(buffer + offset, sizeof(buffer) - offset, fmt, args);
 
         va_end(args);
 
