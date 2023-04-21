@@ -14,8 +14,6 @@
 
 namespace ehal::http
 {
-    const char* SOFTWARE_VERSION PROGMEM = "0.0.1";
-
     WebServer server(80);
     std::unique_ptr<DNSServer> dnsServer;
     String loginCookie;
@@ -202,7 +200,7 @@ namespace ehal::http
         char deviceMac[19] = {};
         snprintf(deviceMac, sizeof(deviceMac), "%#llx", ESP.getEfuseMac());
 
-        page.replace(F("{{sw_ver}}"), F(SOFTWARE_VERSION));
+        page.replace(F("{{sw_ver}}"), get_software_version());
         page.replace(F("{{device_mac}}"), deviceMac);
         page.replace(F("{{device_cpus}}"), String(ESP.getChipCores()));
         page.replace(F("{{device_cpu_freq}}"), String(ESP.getCpuFreqMHz()));

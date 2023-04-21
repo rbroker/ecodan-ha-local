@@ -68,4 +68,9 @@ namespace ehal
         return config.WifiSsid.isEmpty() || config.WifiPassword.isEmpty();
     }
 
+    String get_software_version()
+    {
+        return F("v0.0.1");
+    }
+
 } // namespace ehal

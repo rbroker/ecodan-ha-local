@@ -24,4 +24,5 @@ namespace ehal
     bool save_configuration(const Config& configuration);
     bool clear_configuration();
     bool requires_first_time_configuration();
+    String get_software_version();
 } // namespace ehal
