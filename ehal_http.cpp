@@ -125,7 +125,7 @@ namespace ehal::http
         config.HostName = server.arg("hostname");
         config.MqttServer = server.arg("mqtt_server");
         config.MqttPort = server.arg("mqtt_port").toInt();
-        config.MqttUserName = server.arg("mqtt_username");
+        config.MqttUserName = server.arg("mqtt_user");
         config.MqttPassword = server.arg("mqtt_pw");
         config.MqttTopic = server.arg("mqtt_topic");
         save_configuration(config);

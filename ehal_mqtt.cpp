@@ -5,8 +5,8 @@
 
 #include <WiFiClient.h>
 
-#include <thread>
 #include <chrono>
+#include <thread>
 
 namespace ehal::mqtt
 {
@@ -15,35 +15,34 @@ namespace ehal::mqtt
 
     void mqtt_callback(const char* topic, byte* payload, uint length)
     {
-
     }
 
-        const char* get_connection_error_string()
+    const char* get_connection_error_string()
     {
         switch (mqttClient.state())
         {
-            case MQTT_CONNECTION_TIMEOUT:
-                return "MQTT_CONNECTION_TIMEOUT";
-            case MQTT_CONNECTION_LOST:
-                return "MQTT_CONNECTION_LOST";
-            case MQTT_CONNECT_FAILED:
-                return "MQTT_CONNECT_FAILED";
-            case MQTT_DISCONNECTED:
-                return "MQTT_DISCONNECTED";
-            case MQTT_CONNECTED:
-                return "MQTT_CONNECTED";
-            case MQTT_CONNECT_BAD_PROTOCOL:
-                return "MQTT_CONNECT_BAD_PROTOCOL";
-            case MQTT_CONNECT_BAD_CLIENT_ID:
-                return "MQTT_CONNECT_BAD_CLIENT_ID";
-            case MQTT_CONNECT_UNAVAILABLE:
-                return "MQTT_CONNECT_UNAVAILABLE";
-            case MQTT_CONNECT_BAD_CREDENTIALS:
-                return "MQTT_CONNECT_BAD_CREDENTIALS";
-            case MQTT_CONNECT_UNAUTHORIZED:
-                return "MQTT_CONNECT_UNAUTHORIZED";
-            default:
-                return "Unknown";
+        case MQTT_CONNECTION_TIMEOUT:
+            return "MQTT_CONNECTION_TIMEOUT";
+        case MQTT_CONNECTION_LOST:
+            return "MQTT_CONNECTION_LOST";
+        case MQTT_CONNECT_FAILED:
+            return "MQTT_CONNECT_FAILED";
+        case MQTT_DISCONNECTED:
+            return "MQTT_DISCONNECTED";
+        case MQTT_CONNECTED:
+            return "MQTT_CONNECTED";
+        case MQTT_CONNECT_BAD_PROTOCOL:
+            return "MQTT_CONNECT_BAD_PROTOCOL";
+        case MQTT_CONNECT_BAD_CLIENT_ID:
+            return "MQTT_CONNECT_BAD_CLIENT_ID";
+        case MQTT_CONNECT_UNAVAILABLE:
+            return "MQTT_CONNECT_UNAVAILABLE";
+        case MQTT_CONNECT_BAD_CREDENTIALS:
+            return "MQTT_CONNECT_BAD_CREDENTIALS";
+        case MQTT_CONNECT_UNAUTHORIZED:
+            return "MQTT_CONNECT_UNAUTHORIZED";
+        default:
+            return "Unknown";
         }
     }
 
@@ -51,12 +50,12 @@ namespace ehal::mqtt
     {
         switch (mqttClient.state())
         {
-            case MQTT_CONNECTION_LOST:
-            case MQTT_DISCONNECTED:
-                log_web("Recoverable MQTT connection failure detected: %s", get_connection_error_string());
-                return true;
-            default:
-                return false;
+        case MQTT_CONNECTION_LOST:
+        case MQTT_DISCONNECTED:
+            log_web("Recoverable MQTT connection failure detected: %s", get_connection_error_string());
+            return true;
+        default:
+            return false;
         }
     }
 
@@ -92,7 +91,7 @@ namespace ehal::mqtt
     bool is_configured()
     {
         Config& config = config_instance();
-        if (config.MqttServer.isEmpty())        
+        if (config.MqttServer.isEmpty())
             return false;
 
         if (config.MqttTopic.isEmpty())
@@ -120,7 +119,7 @@ namespace ehal::mqtt
     {
         if (is_configured() && is_recoverable_connection_failure())
         {
-            connect();            
+            connect();
 
             // If the failure isn't as recoverable as we thought, avoid causing too much interference on the network.
             std::this_thread::sleep_for(std::chrono::milliseconds(500));
