@@ -83,7 +83,7 @@ namespace ehal
     </div>
     <br />
     <div class="row">
-        <input class="button column column-25" type="button" value="Reload Wifi SSIDs" onclick='inject_ssid_list()' />
+        <input class="column column-25" id='reload' type="button" value="Reload Wifi SSIDs" onclick='inject_ssid_list()' />
     </div>
     <br />
     <h2>MQTT Configuration:</h2>
@@ -109,17 +109,17 @@ namespace ehal
     </div>
     <br />
     <div class="row">
-        <a class="button column column-25" href="/clear_config">Reset Configuration</a>
-        <input class="button column column-25 column-offset-50" type="submit" value="Save & Reboot" class="button" />
+        <input class="column column-25" id="reset" type="button" value="Reset Configuration" onclick='clear_config()' />
+        <input class="button column column-25 column-offset-50" id="save" type="submit" value="Save & Reboot" />
     </div>
 </form>
 <br />
-<form method="POST" action="update" enctype="multipart/form-data">
+<form method="POST" id="update_form" action="update" enctype="multipart/form-data">
     <h2>Firmware Update</h2>
     <div class="row">
         <label class="column column-25" for="update">Firmware Binary:</label>
         <input class="column column-25" type="file" name="update" />
-        <input class="button column column-25 column-offset-25" type="submit" value="Update" />
+        <input class="column column-25 column-offset-25" id="update" type="button" value="Update" onclick='trigger_update()' />
     </div>
 </form>
 )";

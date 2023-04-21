@@ -7,7 +7,8 @@ namespace ehal
      * by a network scan, without blocking page load. If any of the returned SSIDs match the SSID we've previously
      * saved in our preferences, then attempt to select it automatically.
      */
-    const char* SCRIPT_INJECT_AP_SSIDS PROGMEM = R"(function inject_ssid_list() {
+    const char* SCRIPT_CONFIGURATION_PAGE PROGMEM = R"(function inject_ssid_list() {
+        disable_all_inputs();
         let select = document.getElementById('wifi_ssid');
         let option = document.createElement('option');
         select.innerHTML = '';
@@ -35,18 +36,37 @@ namespace ehal
             } else {
                 select.disabled = true;
             }
+
+            enable_all_inputs();
         }
+        xhttp.error = enable_all_inputs;
+        xhttp.timeout = enable_all_inputs;
         xhttp.send();
     }
 
-    function select_configured_tz() {
-        let select = document.getElementById('device_tz');
-        select.value = {{device_tz}};
+    function clear_config() {
+        disable_all_inputs();
+        window.location = '/clear_config';
     }
 
-    function on_load_processing() {
-        inject_ssid_list();
-        select_configured_tz();
+    function toggle_inputs(state) {
+        document.getElementById('reload').disabled = state;
+        document.getElementById('save').disabled = state;
+        document.getElementById('reset').disabled = state;
+        document.getElementById('update').disabled = state;
+    }
+
+    function enable_all_inputs() {
+        toggle_inputs(false);
+    }
+
+    function disable_all_inputs() {
+        toggle_inputs(true);
+    }
+
+    function trigger_update() {
+        disable_all_inputs();
+        document.getElementById('update_form').submit();
     }
 
     window.addEventListener('load', inject_ssid_list);)";
@@ -76,29 +96,29 @@ namespace ehal
     function trigger_life_check() {
         window.setTimeout(check_alive, 2000);
     }
-    
+
     window.addEventListener('load', trigger_life_check))";
 
     const char* SCRIPT_UPDATE_DIAGNOSTIC_LOGS PROGMEM = R"(function update_diagnostic_logs() {
         let xhttp = new XMLHttpRequest();
         xhttp.open('GET', 'query_diagnostic_logs', true);
         xhttp.onload = function() {
-            let element = document.getElementById('logs');            
-            if (this.status == 200) {               
-                element.textContent = '';
-
+            let element = document.getElementById('logs');
+            if (this.status == 200) {
                 let jsonResponse = JSON.parse(this.responseText);
-                for (let i = 0; i < jsonResponse.messages.length; ++i) {                    
-                    element.textContent += jsonResponse.messages[i] + '\n';                                       
+                for (let i = 0; i < jsonResponse.messages.length; ++i) {
+                    if (element.textContent.indexOf(jsonResponse.messages[i]) == -1) {
+                        element.textContent += jsonResponse.messages[i] + '\n';
+                    }
                 }
             }
         }
         xhttp.send();
     }
-    
+
     window.setInterval(update_diagnostic_logs, 5000);
     window.addEventListener('load', update_diagnostic_logs);)";
 
-    const char* SCRIPT_REDIRECT = R"(window.location = '{{uri}}';       
+    const char* SCRIPT_REDIRECT = R"(window.location = '{{uri}}';
     )";
 } // namespace ehal

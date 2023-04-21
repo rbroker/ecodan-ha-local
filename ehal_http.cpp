@@ -97,7 +97,7 @@ namespace ehal::http
             return;
 
         String page{FPSTR(PAGE_TEMPLATE)};        
-        page.replace(F("{{PAGE_SCRIPT}}"), FPSTR(SCRIPT_INJECT_AP_SSIDS));
+        page.replace(F("{{PAGE_SCRIPT}}"), FPSTR(SCRIPT_CONFIGURATION_PAGE));
         page.replace(F("{{PAGE_BODY}}"), FPSTR(BODY_TEMPLATE_CONFIG));
 
         Config& config = config_instance();

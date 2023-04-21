@@ -92,7 +92,13 @@ namespace ehal::mqtt
     bool is_configured()
     {
         Config& config = config_instance();
-        return !config.MqttServer.isEmpty();
+        if (config.MqttServer.isEmpty())        
+            return false;
+
+        if (config.MqttTopic.isEmpty())
+            return false;
+
+        return true;
     }
 
     bool initialize()
