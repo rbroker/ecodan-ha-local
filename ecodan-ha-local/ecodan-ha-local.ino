@@ -62,11 +62,11 @@ void update_time(bool force)
     static std::chrono::steady_clock::time_point last_time_update = std::chrono::steady_clock::now();
 
     std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
-    if (force || now - last_time_update > std::chrono::hours(24))
+    if (force || now - last_time_update > (std::chrono::hours(24) + std::chrono::seconds(5)))
     {
         last_time_update = now;
-        configTzTime(ehal::config_instance().TimeZone.c_str(), "pool.ntp.org");
-        ehal::log_web("Updated timezone configuration using: '%s'", ehal::config_instance().TimeZone.c_str());
+        configTzTime("UTC0", "pool.ntp.org");
+        ehal::log_web("Updated UTC time from NTP");
     }
 }
 

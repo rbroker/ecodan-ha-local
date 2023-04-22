@@ -23,7 +23,7 @@ namespace ehal
         va_start(args, fmt);
 
         // Include timestamp in diagnostic log message.
-        time_t now = time(0);
+        time_t now = time(nullptr);
         struct tm t = *localtime(&now);
         strftime(buffer, sizeof(buffer), "[%T] ", &t);
         const size_t offset = 11; // "[14:55:02] "

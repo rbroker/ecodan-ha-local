@@ -46,7 +46,8 @@ namespace ehal::hp
 
     String get_current_action()
     {
-        return F("off");
+        // { off, heating, cooling, drying, idle, fan }
+        return F("idle");
     }
 
     String get_mode_status_template()

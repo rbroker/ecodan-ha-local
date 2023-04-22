@@ -38,10 +38,6 @@ namespace ehal
         <label class="column column-25" for="device_pw">Device Password:</label>
         <input class="column column-75" type="password" id="device_pw" max-length="100" name="device_pw" value="{{device_pw}}" />
     </div>
-    <div class="row">
-        <label class="column column-25" for="device_tz">Time Zone:</label>
-        <input class="column column-75" type="text" id="device_tz" name="device_tz" value="{{device_tz}}" />
-    </div>
     <br />
     <h2>WiFi Configuration:</h2>
     <div class="row">

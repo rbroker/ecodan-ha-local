@@ -103,8 +103,7 @@ namespace ehal::http
         page.replace(F("{{PAGE_BODY}}"), FPSTR(BODY_TEMPLATE_CONFIG));
 
         Config& config = config_instance();
-        page.replace(F("{{device_pw}}"), config.DevicePassword);
-        page.replace(F("{{device_tz}}"), config.TimeZone);
+        page.replace(F("{{device_pw}}"), config.DevicePassword);        
         page.replace(F("{{wifi_ssid}}"), config.WifiSsid);
         page.replace(F("{{wifi_pw}}"), config.WifiPassword);
         page.replace(F("{{hostname}}"), config.HostName);
@@ -130,8 +129,7 @@ namespace ehal::http
     void handle_save_configuration()
     {
         Config config;
-        config.DevicePassword = server.arg("device_pw");
-        config.TimeZone = server.arg("device_tz");
+        config.DevicePassword = server.arg("device_pw");        
         config.WifiSsid = server.arg("wifi_ssid");
         config.WifiPassword = server.arg("wifi_pw");
         config.HostName = server.arg("hostname");
