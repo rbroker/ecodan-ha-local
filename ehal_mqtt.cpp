@@ -180,6 +180,7 @@ namespace ehal::mqtt
             publish_homeassistant_auto_discover();
             publish_status_available();
         }
+
         return true;
     }
 
@@ -193,12 +194,13 @@ namespace ehal::mqtt
 
         Config& config = config_instance();
         mqttClient.setServer(config.MqttServer.c_str(), config.MqttPort);
-        mqttClient.setCallback(mqtt_callback);
+        mqttClient.setCallback(mqtt_callback);        
 
+        // (At least) the first attempt to connect MQTT with valid credentials always seems
+        // to fail, so
         for (int i = 0; i < 5; ++i)
-        {
-            connect();
-            if (!mqttClient.connected())
+        {            
+            if (!connect())
             {
                 std::this_thread::sleep_for(std::chrono::seconds(1));
             }

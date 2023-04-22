@@ -9,6 +9,7 @@
 
 #include "ehal_config.h"
 #include "ehal_diagnostics.h"
+#include "ehal_hp.h"
 #include "ehal_http.h"
 #include "ehal_mqtt.h"
 #include "ehal_thirdparty.h"
@@ -92,6 +93,7 @@ void setup()
         ehal::http::initialize_default();
     }
 
+    ehal::hp::initialize();
     ehal::mqtt::initialize();
 
     ehal::log_web("Ecodan HomeAssistant Bridge startup successful, starting request processing.");
@@ -100,6 +102,7 @@ void setup()
 void loop()
 {
     ehal::http::handle_loop();
+    ehal::hp::handle_loop();
     ehal::mqtt::handle_loop();
 
     update_time(/* force =*/false);

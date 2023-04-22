@@ -17,6 +17,7 @@ namespace ehal::http
     WebServer server(80);
     std::unique_ptr<DNSServer> dnsServer;
     String loginCookie;
+    uint8_t failedLoginCount = 0;
 
     String generate_login_cookie()
     {
@@ -94,7 +95,7 @@ namespace ehal::http
         if (show_login_if_required())
             return;
 
-        String page{FPSTR(PAGE_TEMPLATE)};        
+        String page{FPSTR(PAGE_TEMPLATE)};                
         page.replace(F("{{PAGE_SCRIPT}}"), FPSTR(SCRIPT_CONFIGURATION_PAGE));
         page.replace(F("{{PAGE_BODY}}"), FPSTR(BODY_TEMPLATE_CONFIG));
 
@@ -307,10 +308,20 @@ namespace ehal::http
             log_web("Successful device login, authorising client.");
 
             server.sendHeader("Set-Cookie", String("login-cookie=") + loginCookie);
+
+            // Reset brute-force mitigation count, to avoid upsetting legitimate users.
+            failedLoginCount = 0;
         }
         else
         {
             log_web("Device password mismatch! Login attempted with '%s'", server.arg("device_pw").c_str());
+
+            // Mitigate password brute-force.
+            if (++failedLoginCount > 5)
+            {
+                std::this_thread::sleep_for(std::chrono::seconds(5));
+                failedLoginCount = 10; // Prevent overflow of counter.
+            }
         }
 
         handle_redirect("/");
