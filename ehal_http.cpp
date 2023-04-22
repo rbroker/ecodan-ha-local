@@ -1,4 +1,5 @@
 #include "ehal_config.h"
+#include "ehal_css.h"
 #include "ehal_diagnostics.h"
 #include "ehal_hp.h"
 #include "ehal_html.h"
@@ -358,6 +359,11 @@ namespace ehal::http
         handle_redirect("/");
     }
 
+    void handle_milligram_css()
+    {        
+        server.send(200, "text/css", FPSTR(ehal::PAGE_CSS));
+    }
+
     void do_common_initialization()
     {
         // Common pages
@@ -371,7 +377,7 @@ namespace ehal::http
         server.on("/clear_config", handle_clear_config);
         server.on("/update", HTTP_POST, handle_firmware_update, handle_firmware_update_handler);
 
-        // Javascript XHTTPRequest
+        // XMLHTTPRequest / Javascript / CSS
         server.on("/query_ssid", handle_query_ssid_list);
         server.on("/query_life", handle_query_life);
         server.on("/query_diagnostic_logs", handle_query_diagnostic_logs);
@@ -379,6 +385,7 @@ namespace ehal::http
         server.on("/reboot.js", handle_reboot_js);
         server.on("/diagnostic.js", handle_diagnostic_js);
         server.on("/redirect.js", handle_redirect_js);
+        server.on("/milligram.css", handle_milligram_css);
 
         const char* headers[] = {"Cookie"};
         server.collectHeaders(headers, sizeof(headers) / sizeof(char*));
