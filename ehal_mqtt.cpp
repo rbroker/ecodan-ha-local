@@ -91,7 +91,7 @@ namespace ehal::mqtt
         DynamicJsonDocument payloadJson(4096);
         payloadJson["name"] = hp::entity_name();
         payloadJson["unique_id"] = device_mac();
-        payloadJson["icon"] = "mdi:heat-pump";
+        payloadJson["icon"] = "mdi:heat-pump-outline";
 
         JsonObject device = payloadJson.createNestedObject("device");
         JsonArray identifiers = device.createNestedArray("ids");
