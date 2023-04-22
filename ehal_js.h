@@ -14,6 +14,7 @@ namespace ehal
         select.innerHTML = '';
         option.value = '';
         option.textContent = 'Loading SSIDs...';
+        select.disabled = true;
         select.appendChild(option);
 
         let xhttp = new XMLHttpRequest();
@@ -69,7 +70,14 @@ namespace ehal
         document.getElementById('update_form').submit();
     }
 
-    window.addEventListener('load', inject_ssid_list);)";
+    function initial_ssid_query() {
+        let option = document.getElementById('pre-ssid');
+        if (!option || !option.value || option.value != '{{wifi_ssid}}') {
+            inject_ssid_list();
+        }
+    }
+
+    window.addEventListener('load', initial_ssid_query);)";
 
     const char* SCRIPT_WAIT_REBOOT PROGMEM = R"(function check_alive() {
         let xhttp = new XMLHttpRequest();

@@ -7,12 +7,16 @@
 #include <mutex>
 #include <thread>
 
+#include "ehal.h"
 #include "ehal_config.h"
 #include "ehal_diagnostics.h"
 #include "ehal_hp.h"
 #include "ehal_http.h"
 #include "ehal_mqtt.h"
 #include "ehal_thirdparty.h"
+
+bool mqttInitialized = false;
+bool heatpumpInitialized = false;
 
 bool initialize_wifi_access_point()
 {
@@ -88,13 +92,10 @@ void setup()
     }
     else
     {
-        ehal::log_web("Regular startup mode, initializing web-server...");
-
         ehal::http::initialize_default();
-    }
-
-    ehal::hp::initialize();
-    ehal::mqtt::initialize();
+        heatpumpInitialized = ehal::hp::initialize();
+        mqttInitialized = ehal::mqtt::initialize();
+    }    
 
     ehal::log_web("Ecodan HomeAssistant Bridge startup successful, starting request processing.");
 }
@@ -102,8 +103,12 @@ void setup()
 void loop()
 {
     ehal::http::handle_loop();
-    ehal::hp::handle_loop();
-    ehal::mqtt::handle_loop();
+
+    if (heatpumpInitialized)
+        ehal::hp::handle_loop();
+
+    if (mqttInitialized)
+        ehal::mqtt::handle_loop();
 
     update_time(/* force =*/false);
 

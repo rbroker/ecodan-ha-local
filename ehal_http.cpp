@@ -1,5 +1,6 @@
 #include "ehal_config.h"
 #include "ehal_diagnostics.h"
+#include "ehal_hp.h"
 #include "ehal_html.h"
 #include "ehal_http.h"
 #include "ehal_js.h"
@@ -218,6 +219,8 @@ namespace ehal::http
         page.replace(F("{{wifi_mac}}"), WiFi.macAddress());
         page.replace(F("{{wifi_tx_power}}"), String(WiFi.getTxPower()));
 
+        page.replace(F("{{ha_hp_entity}}"), FPSTR("climate.") + ehal::hp::entity_name());
+
         server.send(200, F("text/html"), page);
     }
 
@@ -352,6 +355,8 @@ namespace ehal::http
 
     bool initialize_default()
     {
+        ehal::log_web("Regular startup mode, initializing web-server...");
+
         server.on("/", handle_root);
         server.onNotFound(handle_root);
         do_common_initialization();

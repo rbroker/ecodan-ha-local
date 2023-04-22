@@ -46,12 +46,13 @@ namespace ehal
     <h2>WiFi Configuration:</h2>
     <div class="row">
         <label  class="column column-25" for="wifi_ssid">WiFi SSID:</label>
-        <select class="column column-75" id="wifi_ssid" name="wifi_ssid" disabled>
+        <select class="column column-75" id="wifi_ssid" name="wifi_ssid" required>
+            <option id="pre-ssid" value="{{wifi_ssid}}">{{wifi_ssid}}</option>
         </select>
     </div>
     <div class="row">
         <label class="column column-25" for="wifi_pw">WiFi Password:</label>
-        <input class="column column-75" type="password" id="wifi_pw" name="wifi_pw" minlength="15" value="{{wifi_pw}}" />
+        <input class="column column-75" type="password" id="wifi_pw" name="wifi_pw" minlength="15" value="{{wifi_pw}}" required />
     </div>
     <div class="row">
         <label class="column column-25" for="hostname">Hostname:</label>
@@ -59,33 +60,33 @@ namespace ehal
     </div>
     <br />
     <div class="row">
-        <input class="column column-25" id='reload' type="button" value="Reload Wifi SSIDs" onclick='inject_ssid_list()' />
+        <input class="column column-25 column-offset-75" id='reload' type="button" value="Reload Wifi SSIDs" onclick='inject_ssid_list()' />
     </div>
     <br />
     <h2>MQTT Configuration:</h2>
     <div class="row">
         <label class="column column-25" for="mqtt_server">MQTT Server:</label>
-        <input class="column column-75" type="text" id="mqtt_server" name="mqtt_server" value="{{mqtt_server}}" />
+        <input class="column column-75" type="text" id="mqtt_server" name="mqtt_server" value="{{mqtt_server}}" required />
     </div>
     <div class="row">
         <label class="column column-25" for="mqtt_port">MQTT Port:</label>
-        <input class="column column-75" type="text" inputmode="numeric" id="mqtt_port" name="mqtt_port" value="{{mqtt_port}}" />
+        <input class="column column-75" type="text" inputmode="numeric" id="mqtt_port" name="mqtt_port" value="{{mqtt_port}}" required />
     </div>
     <div class="row">
         <label class="column column-25" for="mqtt_user">MQTT User:</label>
-        <input class="column column-75" type="text" id="mqtt_user" name="mqtt_user" value="{{mqtt_user}}" />
+        <input class="column column-75" type="text" id="mqtt_user" name="mqtt_user" value="{{mqtt_user}}" required />
     </div>
     <div class="row">
         <label class="column column-25" for="mqtt_pw">MQTT Password:</label>
-        <input class="column column-75" type="password" id="mqtt_pw" name="mqtt_pw" value="{{mqtt_pw}}" />
+        <input class="column column-75" type="password" id="mqtt_pw" name="mqtt_pw" value="{{mqtt_pw}}" required />
     </div>
     <div class="row">
         <label class="column column-25" for="mqtt_topic">MQTT Topic:</label>
-        <input class="column column-75" type="text" id="mqtt_topic" name="mqtt_topic" value="{{mqtt_topic}}" />
+        <input class="column column-75" type="text" id="mqtt_topic" name="mqtt_topic" value="{{mqtt_topic}}" required />
     </div>
     <br />
     <div class="row">
-        <input class="column column-25" id="reset" type="button" value="Reset Configuration" onclick='clear_config()' />
+        <input class="column column-25" id="reset" type="button" value="Restore Defaults" onclick='clear_config()' />
         <input class="button column column-25 column-offset-50" id="save" type="submit" value="Save & Reboot" />
     </div>
 </form>
@@ -168,6 +169,10 @@ namespace ehal
     <tr>
         <td>WiFi Tx Power:</td>
         <td>{{wifi_tx_power}}</td>
+    </tr>
+    <tr>
+        <td>HomeAssistant Heat Pump Entity:</td>
+        <td>{{ha_hp_entity}}</td>
     </tr>
 </table>
 <h2>Logs</h2>

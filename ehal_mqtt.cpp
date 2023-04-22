@@ -1,6 +1,8 @@
+#include "ehal.h"
 #include "ehal_config.h"
 #include "ehal_diagnostics.h"
 #include "ehal_mqtt.h"
+#include "ehal_hp.h"
 #include "ehal_thirdparty.h"
 
 #include <WiFi.h>
@@ -81,43 +83,47 @@ namespace ehal::mqtt
         return true;
     }
 
-    String device_mac()
-    {
-        char deviceMac[17] = {};
-        snprintf(deviceMac, sizeof(deviceMac), "%llx", ESP.getEfuseMac());
-        return deviceMac;
-    }
-
-    String name()
-    {        
-        return String("ecodan_hp_") + device_mac();        
-    }
-
     void publish_homeassistant_auto_discover()
     {
-        DynamicJsonDocument payloadJson(4096);
-        payloadJson["name"] = name();
-        payloadJson["uniqueId"] = device_mac();
+        // https://www.home-assistant.io/integrations/mqtt/
+        // https://www.home-assistant.io/integrations/climate.mqtt/
 
-        JsonArray modes = payloadJson.createNestedArray("modes");
-        modes.add("heat");
-        modes.add("off");
+        DynamicJsonDocument payloadJson(4096);
+        payloadJson["name"] = hp::entity_name();
+        payloadJson["unique_id"] = device_mac();
+        payloadJson["icon"] = "mdi:heat-pump";
+
+        JsonObject device = payloadJson.createNestedObject("device");
+        JsonArray identifiers = device.createNestedArray("ids");
+        identifiers.add(hp::entity_name());
+
+        device["name"] = hp::entity_name();
+        device["sw"] = get_software_version();
+        device["mdl"] = hp::get_device_model();
+        device["mf"] = "MITSUBISHI ELECTRIC";
+        device["cu"] = String("http://") + WiFi.localIP().toString() + "/configuration";        
 
         payloadJson["device_class"] = "climate";
         payloadJson["mode_cmd_t"] = mqttModeSetTopic;
         payloadJson["mode_stat_t"] = mqttStateTopic;
-        payloadJson["avty_t"] = mqttAvailabilityTopic;
+        payloadJson["mode_stat_tpl"] = hp::get_mode_status_template();
+        payloadJson["temp_stat_t"] = mqttStateTopic;
+        payloadJson["temp_stat_tpl"] = hp::get_temperature_status_template();
+        payloadJson["curr_temp_t"] = mqttStateTopic;
+        payloadJson["curr_temp_tpl"] = hp::get_current_temperature_status_template();
+        payloadJson["avty_t"] = mqttAvailabilityTopic;        
         payloadJson["pl_not_avail"] = "offline";
         payloadJson["pl_avail"] = "online";
-        payloadJson["temp_unit"] = "C";
 
-        JsonObject device = payloadJson.createNestedObject("device");
-        device["ids"] = name();
-        device["name"] = name();
-        device["sw"] = get_software_version();
-        device["mdl"] = "Ecodan PUZ-WM60VAA";
-        device["mf"] = "MITSUBISHI ELECTRIC";
-        device["configuration_url"] = String("http://") + WiFi.localIP().toString() + "/configuration";
+        payloadJson["initial"] = hp::get_initial_temperature();
+        payloadJson["min_temp"] = hp::get_min_temperature();
+        payloadJson["max_temp"] = hp::get_max_temperature();
+        payloadJson["temp_unit"] = "C";
+        payloadJson["temp_step"] = hp::get_temperature_step();
+
+        JsonArray modes = payloadJson.createNestedArray("modes");
+        modes.add("heat");
+        modes.add("off");
 
         String output;
         serializeJson(payloadJson, output);
@@ -129,19 +135,24 @@ namespace ehal::mqtt
     }
 
     void publish_status_available()
-    {
+    {        
         mqttClient.publish(mqttAvailabilityTopic.c_str(), "online", true);
         log_web("Published HP status: online");
     }
 
-    void publish_status()
+    void publish_status_unavailable()
     {
-        // Dummy data until I get the actual heat pump
-        DynamicJsonDocument json(1024);
-        json["roomTemperature"] = "21";
-        json["temperature"] = "7";
-        json["mode"] = "off";
-        json["action"] = "off";
+        mqttClient.publish(mqttAvailabilityTopic.c_str(), "offline", true);
+        log_web("Published HP status: offline");
+    }
+
+    void publish_status()
+    {        
+        DynamicJsonDocument json(1024);        
+        json["temperature"] = hp::get_initial_temperature();
+        json["curr_temp"] = hp::get_current_temperature();
+        json["mode"] = hp::get_current_mode();
+        json["action"] = hp::get_current_action();
 
         String mqttOutput;
         serializeJson(json, mqttOutput);
@@ -186,6 +197,8 @@ namespace ehal::mqtt
 
     bool initialize()
     {
+        log_web("Initializing MQTT...");
+
         if (!is_configured())
         {
             log_web("Unable to initialize MQTT, server is not configured.");
@@ -212,10 +225,10 @@ namespace ehal::mqtt
 
         // https://www.home-assistant.io/integrations/mqtt/
         // <discovery_prefix>/<component>/<object_id>/
-        mqttDiscovery = String("homeassistant/climate/") + name() + "/config";
-        mqttModeSetTopic = config.MqttTopic + "/" + name() + "/mode/set";
-        mqttStateTopic = config.MqttTopic + "/" + name() + "/state";
-        mqttAvailabilityTopic = config.MqttTopic + "/" + name() + "/availability";
+        mqttDiscovery = String("homeassistant/climate/") + hp::entity_name() + "/config";
+        mqttModeSetTopic = config.MqttTopic + "/" + hp::entity_name() + "/mode/set";
+        mqttStateTopic = config.MqttTopic + "/" + hp::entity_name() + "/state";
+        mqttAvailabilityTopic = config.MqttTopic + "/" + hp::entity_name() + "/availability";
 
         mqttClient.subscribe(mqttModeSetTopic.c_str());
 
