@@ -116,61 +116,60 @@ namespace ehal
     <a class="button button-clear column column-25" href="/heat_pump">Heat Pump</a>
 </nav>
 <h2>Device Info</h2>
-<div class="row">
-    <p class="column column-25">Software Version:</p>
-    <p class="column column-75">{{sw_ver}}</p>
-</div>
-<div class="row">
-    <p class="column column-25">Device MAC:</p>
-    <p class="column column-75">{{device_mac}}</p>
-</div>
-<div class="row">
-    <p class="column column-25">Device CPU Cores:</p>
-    <p class="column column-75">{{device_cpus}}</p>
-</div>
-<div class="row">
-    <p class="column column-25">Device CPU Frequency:</p>
-    <p class="column column-75">{{device_cpu_freq}}Mhz</p>
-</div>
-<div class="row">
-    <p class="column column-25">Device Free Heap:</p>
-    <p class="column column-75">{{device_free_heap}}</p>
-</div>
-<div class="row">
-    <p class="column column-25">Device Total Heap:</p>
-    <p class="column column-75">{{device_total_heap}}</p>
-</div>
-<div class="row">
-    <p class="column column-25">Device Heap Low Watermark:</p>
-    <p class="column column-75">{{device_min_heap}}</p>
-</div>
-<div class="row">
-    <p class="column column-25">Device Free PSRAM:</p>
-    <p class="column column-75">{{device_free_psram}}</p>
-</div>
-<div class="row">
-    <p class="column column-25">Device Total PSRAM:</p>
-    <p class="column column-75">{{device_total_psram}}</p>
-</div>
-<br />
-<h2>WiFi Info</h2>
-<div class="row">
-    <p class="column column-25">WiFi HostName:</p>
-    <p class="column column-75">{{wifi_hostname}}</p>
-</div>
-<div class="row">
-    <p class="column column-25">WiFi Gateway IP:</p>
-    <p class="column column-75">{{wifi_gateway_ip}}</p>
-</div>
-<div class="row">
-    <p class="column column-25">WiFi MAC:</p>
-    <p class="column column-75">{{wifi_mac}}</p>
-</div>
-<div class="row">
-    <p class="column column-25">WiFi Tx Power:</p>
-    <p class="column column-75">{{wifi_tx_power}}</p>
-</div>
-<br />
+<table>
+    <tr>
+        <td>Software Version:</td>
+        <td>{{sw_ver}}</td>
+    </tr>
+    <tr>
+        <td>Device MAC:</td>
+        <td>{{device_mac}}</td>
+    </tr>
+    <tr>
+        <td>Device CPU Cores:</td>
+        <td>{{device_cpus}}</td>
+    </tr>
+    <tr>
+        <td>Device CPU Frequency:</td>
+        <td>{{device_cpu_freq}}Mhz</td>
+    </tr>
+    <tr>
+        <td>Device Free Heap:</td>
+        <td>{{device_free_heap}}</td>
+    </tr>
+    <tr>
+        <td>Device Total Heap:</td>
+        <td>{{device_total_heap}}</td>
+    </tr>
+    <tr>
+        <td>Device Heap Low Watermark:</td>
+        <td>{{device_min_heap}}</td>
+    </tr>
+    <tr>
+        <td>Device Free PSRAM:</td>
+        <td>{{device_free_psram}}</td>
+    </tr>
+    <tr>
+        <td>Device Total PSRAM:</td>
+        <td>{{device_total_psram}}</td>
+    </tr>
+    <tr>
+        <td>WiFi HostName:</td>
+        <td>{{wifi_hostname}}</td>
+    </tr>
+    <tr>
+        <td>WiFi Gateway IP:</td>
+        <td>{{wifi_gateway_ip}}</td>
+    </tr>
+    <tr>
+        <td>WiFi MAC:</td>
+        <td>{{wifi_mac}}</td>
+    </tr>
+    <tr>
+        <td>WiFi Tx Power:</td>
+        <td>{{wifi_tx_power}}</td>
+    </tr>
+</table>
 <h2>Logs</h2>
 <pre><code class="column column-33 column-offset-33" style="max-height:250px;overflow:auto;" id="logs">
 </code></pre>)";
