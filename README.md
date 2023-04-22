@@ -43,12 +43,14 @@ Setting a device password will cause the web interface to require the password t
 It's strongly recommended to enable this setting in case the device falls back to broadcasting an open access point, as it will retain other configuration values (MQTT passwords, server, Wifi SSID/Password) which may then be readable by anyone.
 
 *Default*: `""`
+
 *Required*: No
 
 ### Time Zone
 This setting contains a timezone value specified in ["TZ" format](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones).
 
 *Default*: `Europe/London`
+
 *Required*: No
 
 ### WiFi SSID
@@ -57,6 +59,7 @@ The SSID of the WiFi network which you'd like the device to connect to. When the
 Note: If this setting or "WiFi Password" are unset, the device will continue to boot into a captive portal access point.
 
 *Default*: `""`
+
 *Required*: Yes
 
 ### WiFi Password
@@ -65,42 +68,49 @@ The passphrase/password which should be used when connecting to the previously s
 Note: If this setting or "WiFi SSID" are unset, the device will continue to boot into a captive portal access point.
 
 *Default*: `""`
+
 *Required*: Yes
 
 ### Hostname
 The network hostname the device will use to identify itself. 
 
 *Default*: `ecodan_ha_local`
+
 *Required*: No
 
 ### MQTT Server
 The IP address or hostname of the MQTT server on your local network.
 
 *Default*: `""`
+
 *Required*: Yes
 
 ### MQTT Port
 The port on which your MQTT server is listening. 
 
 *Default*: `1883`
+
 *Required*: Yes
 
 ### MQTT User
 The username which should be used when connecting to the specified MQTT Server.
 
 *Default*: `""`
+
 *Required*: Yes
 
 ### MQTT Password
 The password for the given MQTT User.
 
 *Default*: `""`
+
 *Required*: Yes
 
 ### MQTT Topic
 The topic value which the server should use to filter messages related to this heat pump.
 
 *Default*: `ecodan_hp`
+
 *Required*: Yes
 
 
