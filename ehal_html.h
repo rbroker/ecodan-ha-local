@@ -159,6 +159,9 @@ namespace ehal
         <td>{{wifi_hostname}}</td>
     </tr>
     <tr>
+        <td>WiFi IP:</td>
+        <td>{{wifi_ip}}</td>
+    <tr>
         <td>WiFi Gateway IP:</td>
         <td>{{wifi_gateway_ip}}</td>
     </tr>
