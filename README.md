@@ -5,6 +5,13 @@ Uses the CN105 connector on the Cased Flow Temp Controller (FTC6 in my setup) to
 
 There are a number of existing solutions for connecting to Mitsubish heat pump models via the CN105 connector, though I couldn't find any which were tailored towards air-to-water heat pumps rather than the more common air-to-air versions.
 
+<p float="left">
+  <img src="img/config_page.png" height="640" />
+  <img src="img/diagnostics_page.png" height="640" />
+</p>
+
+![HomeAssistant MQTT Auto Discovery](img/ha_discover.png)
+
 ## Hardware Dependencies
 - ESP32-compatible development board (I'm using a generic ESP32S2 Dev Module)
 - CN105 female connector + pigtails, as described [here](https://github.com/SwiCago/HeatPump#Demo-Circuit).
