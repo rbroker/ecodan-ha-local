@@ -75,6 +75,7 @@ namespace ehal::http
         }
 
         String page{FPSTR(PAGE_TEMPLATE)};
+        page.replace(F("{{PAGE_SCRIPT}}"), "");
         page.replace(F("{{PAGE_BODY}}"), FPSTR(BODY_TEMPLATE_LOGIN));
         server.send(200, F("text/html"), page);
         return true;
@@ -97,7 +98,7 @@ namespace ehal::http
             return;
 
         String page{FPSTR(PAGE_TEMPLATE)};                
-        page.replace(F("{{PAGE_SCRIPT}}"), FPSTR(SCRIPT_CONFIGURATION_PAGE));
+        page.replace(F("{{PAGE_SCRIPT}}"), F("src='/configuration.js'"));
         page.replace(F("{{PAGE_BODY}}"), FPSTR(BODY_TEMPLATE_CONFIG));
 
         Config& config = config_instance();
@@ -113,6 +114,16 @@ namespace ehal::http
         page.replace(F("{{mqtt_topic}}"), config.MqttTopic);
 
         server.send(200, F("text/html"), page);
+    }
+
+    void handle_configuration_js()
+    {
+        String js{FPSTR(SCRIPT_CONFIGURATION_PAGE)};
+
+        Config& config = config_instance();
+        js.replace(F("{{wifi_ssid}}"), config.WifiSsid);
+
+        server.send(200, F("text/javascript"), js);
     }
 
     void handle_save_configuration()
@@ -131,7 +142,7 @@ namespace ehal::http
         save_configuration(config);
 
         String page{FPSTR(PAGE_TEMPLATE)};
-        page.replace(F("{{PAGE_SCRIPT}}"), FPSTR(SCRIPT_WAIT_REBOOT));
+        page.replace(F("{{PAGE_SCRIPT}}"), F("src='/reboot.js'"));
         page.replace(F("{{PAGE_BODY}}"), FPSTR(BODY_TEMPLATE_CONFIG_SAVED));
         server.sendHeader("Connection", "close");
         server.send(200, F("text/html"), page);
@@ -141,12 +152,18 @@ namespace ehal::http
         ESP.restart();
     }
 
+    void handle_reboot_js()
+    {
+        String js{FPSTR(SCRIPT_WAIT_REBOOT)};
+        server.send(200, F("text/javascript"), js);
+    }
+
     void handle_clear_config()
     {
         clear_configuration();
 
         String page{FPSTR(PAGE_TEMPLATE)};
-        page.replace(F("{{PAGE_SCRIPT}}"), FPSTR(SCRIPT_WAIT_REBOOT));
+        page.replace(F("{{PAGE_SCRIPT}}"), F("src='/reboot.js'"));
         page.replace(F("{{PAGE_BODY}}"), FPSTR(BODY_TEMPLATE_CONFIG_CLEARED));
         server.sendHeader("Connection", "close");
         server.send(200, F("text/html"), page);
@@ -186,7 +203,6 @@ namespace ehal::http
 
     void handle_query_diagnostic_logs()
     {
-
         server.send(200, F("text/plain"), logs_as_json());
     }
 
@@ -196,7 +212,7 @@ namespace ehal::http
             return;
 
         String page{FPSTR(PAGE_TEMPLATE)};        
-        page.replace(F("{{PAGE_SCRIPT}}"), FPSTR(SCRIPT_UPDATE_DIAGNOSTIC_LOGS));
+        page.replace(F("{{PAGE_SCRIPT}}"), F("src='/diagnostic.js'"));
         page.replace(F("{{PAGE_BODY}}"), FPSTR(BODY_TEMPLATE_DIAGNOSTICS));
 
         char deviceMac[19] = {};
@@ -224,6 +240,12 @@ namespace ehal::http
         server.send(200, F("text/html"), page);
     }
 
+    void handle_diagnostic_js()
+    {
+        String js{FPSTR(SCRIPT_UPDATE_DIAGNOSTIC_LOGS)};
+        server.send(200, F("text/javascript"), js);
+    }
+
     void handle_heat_pump()
     {
         if (show_login_if_required())
@@ -239,7 +261,7 @@ namespace ehal::http
     void handle_firmware_update()
     {
         String page{FPSTR(PAGE_TEMPLATE)};
-        page.replace(F("{{PAGE_SCRIPT}}"), FPSTR(SCRIPT_WAIT_REBOOT));
+        page.replace(F("{{PAGE_SCRIPT}}"), F("src='/reboot.js'"));
         page.replace(F("{{PAGE_BODY}}"), FPSTR(BODY_TEMPLATE_FIRMWARE_UPDATE));
 
         server.sendHeader("Connection", "close");
@@ -293,10 +315,16 @@ namespace ehal::http
     void handle_redirect(const char* uri)
     {
         String page{FPSTR(PAGE_TEMPLATE)};
-        page.replace(F("{{PAGE_SCRIPT}}"), FPSTR(SCRIPT_REDIRECT));
+        page.replace(F("{{PAGE_SCRIPT}}"), F("src='/redirect.js'"));
         page.replace(F("{{PAGE_BODY}}"), FPSTR(BODY_TEMPLATE_REDIRECT));
         page.replace(F("{{uri}}"), uri);
         server.send(200, F("text/html"), page);
+    }
+
+    void handle_redirect_js()
+    {
+        String js{FPSTR(SCRIPT_REDIRECT)};
+        server.send(200, F("text/javascript"), js);
     }
 
     void handle_verify_login()
@@ -347,6 +375,10 @@ namespace ehal::http
         server.on("/query_ssid", handle_query_ssid_list);
         server.on("/query_life", handle_query_life);
         server.on("/query_diagnostic_logs", handle_query_diagnostic_logs);
+        server.on("/configuration.js", handle_configuration_js);
+        server.on("/reboot.js", handle_reboot_js);
+        server.on("/diagnostic.js", handle_diagnostic_js);
+        server.on("/redirect.js", handle_redirect_js);
 
         const char* headers[] = {"Cookie"};
         server.collectHeaders(headers, sizeof(headers) / sizeof(char*));
