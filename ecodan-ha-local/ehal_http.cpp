@@ -117,6 +117,17 @@ namespace ehal::http
         return true;
     }
 
+    void async_restart()
+    {
+        std::thread asyncRestart([]()
+        {
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+            ESP.restart(); 
+        });
+
+        asyncRestart.detach();
+    }
+
     void handle_root()
     {
         if (show_login_if_required())
@@ -179,14 +190,12 @@ namespace ehal::http
         save_configuration(config);
 
         String page{FPSTR(PAGE_TEMPLATE)};
-        page.replace(F("{{PAGE_SCRIPT}}"), F("src='/reboot.js'"));
+        page.replace(F("{{PAGE_SCRIPT}}"), F("defer src='/reboot.js'"));
         page.replace(F("{{PAGE_BODY}}"), FPSTR(BODY_TEMPLATE_CONFIG_SAVED));
         server.sendHeader("Connection", "close");
         server.send(200, F("text/html"), page);
 
-        std::this_thread::sleep_for(std::chrono::seconds(1));
-
-        ESP.restart();
+        async_restart();
     }
 
     void handle_reboot_js()
@@ -200,14 +209,12 @@ namespace ehal::http
         clear_configuration();
 
         String page{FPSTR(PAGE_TEMPLATE)};
-        page.replace(F("{{PAGE_SCRIPT}}"), F("src='/reboot.js'"));
+        page.replace(F("{{PAGE_SCRIPT}}"), F("defer src='/reboot.js'"));
         page.replace(F("{{PAGE_BODY}}"), FPSTR(BODY_TEMPLATE_CONFIG_CLEARED));
         server.sendHeader("Connection", "close");
         server.send(200, F("text/html"), page);
 
-        std::this_thread::sleep_for(std::chrono::seconds(1));
-
-        ESP.restart();
+        async_restart();
     }
 
     void handle_query_ssid_list()
@@ -303,7 +310,7 @@ namespace ehal::http
             page.replace(F("{{z1_set_temp}}"), String(status.Zone1SetTemperature, 1));
             page.replace(F("{{z2_room_temp}}"), String(status.Zone2RoomTemperature, 1));
             page.replace(F("{{z2_set_temp}}"), String(status.Zone2SetTemperature, 1));
-            
+
             page.replace(F("{{sh_consumed}}"), String(status.EnergyConsumedHeating));
             page.replace(F("{{sh_delivered}}"), String(status.EnergyDeliveredHeating));
             page.replace(F("{{sh_cop}}"), String(status.EnergyDeliveredHeating / status.EnergyConsumedHeating));
@@ -334,9 +341,7 @@ namespace ehal::http
         server.sendHeader("Connection", "close");
         server.send(200, F("text/html"), page);
 
-        std::this_thread::sleep_for(std::chrono::seconds(1));
-
-        ESP.restart();
+        async_restart();
     }
 
     void handle_firmware_update_handler()
