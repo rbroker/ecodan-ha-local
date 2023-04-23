@@ -21,8 +21,8 @@ namespace ehal::hp
         float Zone2RoomTemperature;
         float LegionellaPreventionSetPoint;
         float DhwTemperatureDrop;
-        float MaximumFlowTemperature;
-        float MinimumFlowTemperature;
+        uint8_t MaximumFlowTemperature;
+        uint8_t MinimumFlowTemperature;
         float OutsideTemperature;
         float DhwFeedTemperature;
         float DhwReturnTemperature;

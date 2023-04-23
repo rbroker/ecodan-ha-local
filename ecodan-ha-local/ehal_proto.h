@@ -131,7 +131,7 @@ namespace ehal::hp
             return static_cast<GetType>(buffer_[HEADER_SIZE]);
         }
 
-        const uint8_t* buffer() const
+        uint8_t* buffer()
         {
             return std::addressof(buffer_[0]);
         }
@@ -144,6 +144,11 @@ namespace ehal::hp
         size_t payload_size() const
         {
             return buffer_[PAYLOAD_SIZE_OFFSET];
+        }
+
+        uint8_t* payload()
+        {
+            return buffer_ + HEADER_SIZE;
         }
 
         bool write_header(const char* data, uint8_t length)
@@ -183,10 +188,13 @@ namespace ehal::hp
             buffer_[writeOffset_] = calculate_checksum();
         }
 
+        void increment_write_offset(size_t n)
+        {
+            writeOffset_ += n;
+        }
+
         bool verify_checksum()
         {
-            writeOffset_ -= 1; // store_byte() would have moved us on too far.
-
             uint8_t v = calculate_checksum();
             if (v == buffer_[writeOffset_])
                 return true;
@@ -226,11 +234,6 @@ namespace ehal::hp
         }
 
       private:
-        uint8_t* payload()
-        {
-            return buffer_ + HEADER_SIZE;
-        }
-
         uint8_t calculate_checksum()
         {
             uint8_t checkSum = 0;

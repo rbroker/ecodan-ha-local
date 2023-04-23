@@ -17,7 +17,7 @@ namespace ehal::mqtt
     PubSubClient mqttClient(espClient);
     String mqttDiscovery;
     String mqttStateTopic;
-    String mqttAvailabilityTopic;
+    String mqttAvailabilityTopic;  
 
     String get_mode_status_template()
     {
@@ -219,8 +219,11 @@ off
 
         if (hp::is_connected())
         {
-            if (status != "online")
+            if (status != "online")            
+            {
                 statusChanged = true;
+                publish_homeassistant_auto_discover();            
+            }
 
             status = F("online");
         }
@@ -256,8 +259,8 @@ off
             auto& status = hp::get_status();
             std::lock_guard<hp::Status> lock{status};
 
-            json["temperature"] = status.Zone1SetTemperature;
-            json["curr_temp"] = status.Zone1RoomTemperature;
+            json["temperature"] = String(status.Zone1SetTemperature, 1);
+            json["curr_temp"] = String(status.Zone1RoomTemperature, 1);
             json["mode"] = status.ha_mode_as_string();
             json["action"] = status.ha_action_as_string();
         }
@@ -295,8 +298,7 @@ off
 
         if (mqttClient.connected())
         {
-            log_web("Successfully established MQTT client connection!");
-            publish_homeassistant_auto_discover();
+            log_web("Successfully established MQTT client connection!");            
         }
 
         return true;

@@ -7,7 +7,9 @@ namespace ehal
 {
     struct Config
     {
-        String DevicePassword;        
+        String DevicePassword;
+        uint16_t SerialRxPort;
+        uint16_t SerialTxPort;        
         String WifiSsid;
         String WifiPassword;
         String HostName;

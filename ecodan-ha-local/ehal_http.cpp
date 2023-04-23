@@ -153,6 +153,8 @@ namespace ehal::http
 
         Config& config = config_instance();
         page.replace(F("{{device_pw}}"), config.DevicePassword);
+        page.replace(F("{{serial_rx}}"), String(config.SerialRxPort));
+        page.replace(F("{{serial_tx}}"), String(config.SerialTxPort));
         page.replace(F("{{wifi_ssid}}"), config.WifiSsid);
         page.replace(F("{{wifi_pw}}"), config.WifiPassword);
         page.replace(F("{{hostname}}"), config.HostName);
@@ -179,6 +181,8 @@ namespace ehal::http
     {
         Config config;
         config.DevicePassword = server.arg("device_pw");
+        config.SerialRxPort = server.arg("serial_rx").toInt();
+        config.SerialTxPort = server.arg("serial_tx").toInt();
         config.WifiSsid = server.arg("wifi_ssid");
         config.WifiPassword = server.arg("wifi_pw");
         config.HostName = server.arg("hostname");
@@ -281,8 +285,8 @@ namespace ehal::http
 
         page.replace(F("{{ha_hp_entity}}"), FPSTR("climate.") + ehal::mqtt::entity_name());
 
-        page.replace(F("{{hp_tx_count}}"), uint64_to_string(hp::get_rx_msg_count()));
-        page.replace(F("{{hp_rx_count}}"), uint64_to_string(hp::get_tx_msg_count()));
+        page.replace(F("{{hp_tx_count}}"), uint64_to_string(hp::get_tx_msg_count()));
+        page.replace(F("{{hp_rx_count}}"), uint64_to_string(hp::get_rx_msg_count()));
 
         server.send(200, F("text/html"), page);
     }
@@ -325,8 +329,8 @@ namespace ehal::http
             page.replace(F("{{mode_heating}}"), status.heating_mode_as_string());
             page.replace(F("{{mode_dhw}}"), status.dhw_mode_as_string());
 
-            page.replace(F("{{min_flow_temp}}"), String(status.MinimumFlowTemperature, 0));
-            page.replace(F("{{max_flow_temp}}"), String(status.MaximumFlowTemperature, 0));
+            page.replace(F("{{min_flow_temp}}"), String(status.MinimumFlowTemperature));
+            page.replace(F("{{max_flow_temp}}"), String(status.MaximumFlowTemperature));
         }
 
         server.send(200, F("text/html"), page);

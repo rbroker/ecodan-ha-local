@@ -1,4 +1,5 @@
 #include "ehal.h"
+#include "ehal_config.h"
 #include "ehal_diagnostics.h"
 #include "ehal_hp.h"
 #include "ehal_proto.h"
@@ -12,8 +13,6 @@
 namespace ehal::hp
 {
     HardwareSerial port = Serial1;
-#define TX_PIN 34
-#define RX_PIN 33
 
     bool debugDumpPackets = true;
     uint64_t rxMsgCount = 0;
@@ -23,7 +22,7 @@ namespace ehal::hp
     std::mutex getStatusCmdQueueMutex;
 
     Status status;
-    float temperatureStep = 0.1f;
+    float temperatureStep = 0.5f;
     bool connected = false;
     OnConnectionEstablishedCallback onConnectionEstablished = nullptr;
     OnStatusUpdatedCallback onStatusUpdated = nullptr;
@@ -75,17 +74,13 @@ namespace ehal::hp
             return false;
         }
 
-        for (int i = 0; i < HEADER_SIZE; ++i)
+        if (port.readBytes(msg.buffer(), HEADER_SIZE) < HEADER_SIZE)
         {
-            int v = port.read();
-            if (v == -1)
-            {
-                log_web("Serial port read failure!");
-                return false;
-            }
-
-            msg.store_byte(static_cast<uint8_t>(v));
+            log_web("Serial port header read failure!");
+            return false;
         }
+
+        msg.increment_write_offset(HEADER_SIZE);
 
         if (!msg.verify_header())
         {
@@ -94,23 +89,20 @@ namespace ehal::hp
         }
 
         // It shouldn't take long to receive the rest of the payload after we get the header.
-        while (port.available() < msg.payload_size() + CHECKSUM_SIZE)
+        size_t remainingBytes = msg.payload_size() + CHECKSUM_SIZE;        
+        while (port.available() < remainingBytes)
         {
             log_web_ratelimit("Awaiting serial payload data...");
             delay(1);
         }
 
-        for (int i = 0; i < msg.payload_size() + CHECKSUM_SIZE; ++i)
+        if (port.readBytes(msg.payload(), remainingBytes) < remainingBytes)
         {
-            int v = port.read();
-            if (v == -1)
-            {
-                log_web("Serial port read failure!");
-                return false;
-            }
-
-            msg.store_byte(static_cast<uint8_t>(v));
+            log_web("Serial port payload read failure!");
+            return false;
         }
+
+        msg.increment_write_offset(msg.payload_size()); // Don't count checksum byte.
 
         if (!msg.verify_checksum())
             return false;
@@ -156,8 +148,8 @@ namespace ehal::hp
         if (!serial_tx(msg))
         {
             log_web("Unable to dispatch status update request, flushing queued requests...");
-            
-            std::lock_guard<std::mutex> lock { getStatusCmdQueueMutex};
+
+            std::lock_guard<std::mutex> lock{getStatusCmdQueueMutex};
             while (!getStatusCmdQueue.empty())
                 getStatusCmdQueue.pop();
             connected = false;
@@ -222,22 +214,22 @@ namespace ehal::hp
     void handle_get_response(Message& res)
     {
         {
-            std::lock_guard<Status> lock { status };
+            std::lock_guard<Status> lock{status};
 
             switch (res.payload_type())
             {
-            case GetType::DEFROST_STATE:                
+            case GetType::DEFROST_STATE:
                 status.DefrostActive = res[3] != 0;
                 break;
-            case GetType::COMPRESSOR_FREQUENCY:                
+            case GetType::COMPRESSOR_FREQUENCY:
                 status.CompressorFrequency = res[1];
                 break;
-            case GetType::FORCED_DHW_STATE:                
+            case GetType::FORCED_DHW_STATE:
                 status.DhwBoostActive = res[7] != 0;
                 break;
-            case GetType::HEATING_POWER:                
+            case GetType::HEATING_POWER:
                 break;
-            case GetType::TEMPERATURE_CONFIG:            
+            case GetType::TEMPERATURE_CONFIG:
                 status.Zone1SetTemperature = res.get_float16(1);
                 status.Zone2SetTemperature = res.get_float16(3);
                 status.Zone1FlowTemperatureSetPoint = res.get_float16(5);
@@ -245,28 +237,28 @@ namespace ehal::hp
                 status.LegionellaPreventionSetPoint = res.get_float16(9);
                 status.DhwTemperatureDrop = res.get_float8(11);
                 status.MaximumFlowTemperature = res.get_float8(12);
-                status.MinimumFlowTemperature = res.get_float8(13);     
-                break;            
-            case GetType::SH_TEMPERATURE_STATE:                
+                status.MinimumFlowTemperature = res.get_float8(13);
+                break;
+            case GetType::SH_TEMPERATURE_STATE:
                 status.Zone1RoomTemperature = res.get_float16(1);
                 status.Zone2RoomTemperature = res.get_float16(7);
                 status.OutsideTemperature = res.get_float16(11);
                 break;
-            case GetType::DHW_TEMPERATURE_STATE_A:                
+            case GetType::DHW_TEMPERATURE_STATE_A:
                 status.DhwFeedTemperature = res.get_float16(1);
                 status.DhwReturnTemperature = res.get_float16(4);
                 status.DhwTemperature = res.get_float16(7);
                 break;
-            case GetType::DHW_TEMPERATURE_STATE_B:                
+            case GetType::DHW_TEMPERATURE_STATE_B:
                 status.BoilerFlowTemperature = res.get_float16(1);
                 status.BoilerReturnTemperature = res.get_float16(4);
                 break;
-            case GetType::ACTIVE_TIME:                
+            case GetType::ACTIVE_TIME:
                 break;
-            case GetType::FLOW_RATE:                
+            case GetType::FLOW_RATE:
                 status.FlowRate = res[12];
                 break;
-            case GetType::MODE_FLAGS_A:               
+            case GetType::MODE_FLAGS_A:
                 status.set_power_mode(res[3]);
                 status.set_operation_mode(res[4]);
                 status.set_dhw_mode(res[5]);
@@ -274,15 +266,15 @@ namespace ehal::hp
                 status.DhwFlowTemperatureSetPoint = res.get_float16(8);
                 status.RadiatorFlowTemperatureSetPoint = res.get_float16(12);
                 break;
-            case GetType::MODE_FLAGS_B:                
+            case GetType::MODE_FLAGS_B:
                 status.HolidayMode = res[4] > 0;
                 status.DhwTimerMode = res[5] > 0;
                 break;
-            case GetType::ENERGY_USAGE:                
+            case GetType::ENERGY_USAGE:
                 status.EnergyConsumedHeating = res.get_float24(4);
                 status.EnergyConsumedDhw = res.get_float24(10);
                 break;
-            case GetType::ENERGY_DELIVERY:                
+            case GetType::ENERGY_DELIVERY:
                 status.EnergyDeliveredHeating = res.get_float24(4);
                 status.EnergyDeliveredDhw = res.get_float24(10);
                 break;
@@ -349,11 +341,13 @@ namespace ehal::hp
 
     bool initialize()
     {
-        log_web("Initializing HeatPump...");
+        auto& config = config_instance();
 
-        // port.begin(2400, SERIAL_8E1, RX_PIN, TX_PIN);
-        port.begin(2400, SERIAL_8N1, RX_PIN, TX_PIN);
-        pinMode(RX_PIN, INPUT_PULLUP);
+        log_web("Initializing HeatPump with serial rx: %d, tx: %d", (int8_t)config.SerialRxPort, (int8_t)config.SerialTxPort);
+
+        // port.begin(2400, SERIAL_8E1, config.SerialRxPort, config.SerialTxPort);
+        port.begin(2400, SERIAL_8N1, config.SerialRxPort, config.SerialTxPort);
+        pinMode(config.SerialRxPort, INPUT_PULLUP);
 
         serialRxThread = std::thread{serial_rx_thread};
 
