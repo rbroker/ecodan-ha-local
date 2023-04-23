@@ -328,7 +328,7 @@ namespace ehal::http
     void handle_firmware_update()
     {
         String page{FPSTR(PAGE_TEMPLATE)};
-        page.replace(F("{{PAGE_SCRIPT}}"), F("src='/reboot.js'"));
+        page.replace(F("{{PAGE_SCRIPT}}"), F("defer src='/reboot.js'"));
         page.replace(F("{{PAGE_BODY}}"), FPSTR(BODY_TEMPLATE_FIRMWARE_UPDATE));
 
         server.sendHeader("Connection", "close");

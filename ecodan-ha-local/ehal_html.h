@@ -107,7 +107,7 @@ namespace ehal
     <div class="row">
         <label class="column column-25" for="update">Firmware Binary:</label>
         <input class="column column-25" type="file" name="update" />
-        <input class="column column-25 column-offset-25" id="update" type="button" value="Update" onclick='trigger_update()' />
+        <input class="column column-25 column-offset-25" id="update" type="submit" value="Update" />
     </div>
 </form>
 )";

@@ -65,11 +65,6 @@ namespace ehal
         toggle_inputs(true);
     }
 
-    function trigger_update() {
-        disable_all_inputs();
-        document.getElementById('update_form').submit();
-    }
-
     function initial_ssid_query() {
         let option = document.getElementById('pre-ssid');
         if (!option || !option.value || option.value != '{{wifi_ssid}}') {
@@ -77,7 +72,41 @@ namespace ehal
         }
     }
 
-    window.addEventListener('load', initial_ssid_query);)";
+    function on_page_load() {
+        let form = document.getElementById('update_form');
+
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            disable_all_inputs();
+
+            var xhr = new XMLHttpRequest();
+            xhr.upload.addEventListener('progress', function(e) {
+                if (!e.lengthComputable)
+                    return;
+
+                let el = document.getElementById('update');
+                el.value = Math.round((e.loaded / e.total) * 100) + '%';
+            }, false);
+            xhr.upload.addEventListener('load', function(event) {            
+                let el = document.getElementById('update');
+                el.value = "Done!";
+            }, false);
+            xhr.addEventListener('readystatechange', function(event) {
+                if (event.target.readyState == 4 && event.target.responseText) {                    
+                    var doc = document.open('text/html', 'replace');
+                    doc.write(event.target.responseText);
+                    doc.close();
+                }
+            }, false);
+
+            xhr.open(this.getAttribute('method'), this.getAttribute('action'), true);
+            xhr.send(new FormData(this));
+        });
+
+        initial_ssid_query();
+    }
+
+    window.addEventListener('load', on_page_load);)";
 
     const char* SCRIPT_WAIT_REBOOT PROGMEM = R"(function check_alive() {
         let xhttp = new XMLHttpRequest();
