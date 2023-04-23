@@ -5,5 +5,6 @@
 namespace ehal
 {
     void log_web(const char* fmt, ...);
+    void log_web_ratelimit(const char* fmt, ...);
     String logs_as_json();
 } // namespace ehal

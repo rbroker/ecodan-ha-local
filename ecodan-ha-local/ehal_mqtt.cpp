@@ -1,8 +1,8 @@
 #include "ehal.h"
 #include "ehal_config.h"
 #include "ehal_diagnostics.h"
-#include "ehal_mqtt.h"
 #include "ehal_hp.h"
+#include "ehal_mqtt.h"
 #include "ehal_thirdparty.h"
 
 #include <WiFi.h>
@@ -16,15 +16,81 @@ namespace ehal::mqtt
     WiFiClient espClient;
     PubSubClient mqttClient(espClient);
     String mqttDiscovery;
-    String mqttModeSetTopic;
     String mqttStateTopic;
     String mqttAvailabilityTopic;
+
+    String get_mode_status_template()
+    {
+        String tpl(F(R"(
+{% if (value_json is defined and value_json.mode is defined) %}
+{{ value_json.mode }}
+{% else %}
+off
+{% endif %})"));
+
+        tpl.replace(F("\n"), "");
+        tpl.trim();
+        return tpl;
+    }
+
+    String get_action_status_template()
+    {
+        String tpl(F(R"(
+{% if (value_json is defined and value_json.mode is defined) %}
+{{ value_json.action }}
+{% else %}
+off
+{% endif %})"));
+
+        tpl.replace(F("\n"), "");
+        tpl.trim();
+        return tpl;
+    }
+
+    String get_temperature_status_template()
+    {
+        String tpl(F(R"(
+{% if (value_json is defined and value_json.temperature is defined) %}
+{% if (value_json.temperature|int >= {{min_temp}} and value_json.temperature|int <= {{max_temp}}) %}
+{{ value_json.temperature }}
+{% elif (value_json.temperature|int < {{min_temp}}) %}
+{{min_temp}}
+{% elif (value_json.temperature|int > {{max_temp}}) %}
+{{max_temp}}
+{% endif %}
+{% else %}
+21
+{% endif %})"));
+
+        auto& status = hp::get_status();
+        std::lock_guard<hp::Status> lock{status};
+
+        tpl.replace(F("\n"), "");
+        tpl.replace(F("{{min_temp}}"), String(status.MinimumFlowTemperature));
+        tpl.replace(F("{{max_temp}}"), String(status.MaximumFlowTemperature));
+        tpl.trim();
+
+        return tpl;
+    }
+
+    String get_current_temperature_status_template()
+    {
+        String tpl(F(R"(
+{% if (value_json is defined and value_json.curr_temp is defined) %}
+{{ value_json.curr_temp }}
+{% else %}
+0
+{% endif %})"));
+
+        tpl.replace(F("\n"), "");
+        tpl.trim();
+
+        return tpl;
+    }
 
     void mqtt_callback(const char* topic, byte* payload, uint length)
     {
         log_web("Received MQTT topic: %s", topic);
-
-        String t(topic);
     }
 
     const char* get_connection_error_string()
@@ -73,14 +139,20 @@ namespace ehal::mqtt
         if (!is_configured())
             return false;
 
-        static std::chrono::steady_clock::time_point last_attempt = std::chrono::steady_clock::now();
+        static auto last_attempt = std::chrono::steady_clock::now();
 
-        std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
+        auto now = std::chrono::steady_clock::now();
         if (now - last_attempt < std::chrono::seconds(10))
             return false;
 
         last_attempt = now;
+
         return true;
+    }
+
+    String entity_name()
+    {
+        return String("ecodan_hp_") + device_mac();
     }
 
     void publish_homeassistant_auto_discover()
@@ -89,37 +161,43 @@ namespace ehal::mqtt
         // https://www.home-assistant.io/integrations/climate.mqtt/
 
         DynamicJsonDocument payloadJson(4096);
-        payloadJson["name"] = hp::entity_name();
+        payloadJson["name"] = entity_name();
         payloadJson["unique_id"] = device_mac();
         payloadJson["icon"] = "mdi:heat-pump-outline";
 
         JsonObject device = payloadJson.createNestedObject("device");
         JsonArray identifiers = device.createNestedArray("ids");
-        identifiers.add(hp::entity_name());
+        identifiers.add(entity_name());
 
-        device["name"] = hp::entity_name();
+        device["name"] = entity_name();
         device["sw"] = get_software_version();
         device["mdl"] = hp::get_device_model();
         device["mf"] = "MITSUBISHI ELECTRIC";
-        device["cu"] = String("http://") + WiFi.localIP().toString() + "/configuration";        
+        device["cu"] = String("http://") + WiFi.localIP().toString() + "/configuration";
 
         payloadJson["device_class"] = "climate";
-        payloadJson["mode_cmd_t"] = mqttModeSetTopic;
         payloadJson["mode_stat_t"] = mqttStateTopic;
-        payloadJson["mode_stat_tpl"] = hp::get_mode_status_template();
+        payloadJson["mode_stat_tpl"] = get_mode_status_template();
+        payloadJson["act_t"] = mqttStateTopic;
+        payloadJson["act_tpl"] = get_action_status_template();
         payloadJson["temp_stat_t"] = mqttStateTopic;
-        payloadJson["temp_stat_tpl"] = hp::get_temperature_status_template();
+        payloadJson["temp_stat_tpl"] = get_temperature_status_template();
         payloadJson["curr_temp_t"] = mqttStateTopic;
-        payloadJson["curr_temp_tpl"] = hp::get_current_temperature_status_template();
-        payloadJson["avty_t"] = mqttAvailabilityTopic;        
+        payloadJson["curr_temp_tpl"] = get_current_temperature_status_template();
+        payloadJson["avty_t"] = mqttAvailabilityTopic;
         payloadJson["pl_not_avail"] = "offline";
         payloadJson["pl_avail"] = "online";
 
-        payloadJson["initial"] = hp::get_initial_temperature();
-        payloadJson["min_temp"] = hp::get_min_temperature();
-        payloadJson["max_temp"] = hp::get_max_temperature();
-        payloadJson["temp_unit"] = "C";
-        payloadJson["temp_step"] = hp::get_temperature_step();
+        {
+            auto& status = hp::get_status();
+            std::lock_guard<hp::Status> lock{status};
+
+            payloadJson["initial"] = status.Zone1SetTemperature;
+            payloadJson["min_temp"] = status.MinimumFlowTemperature;
+            payloadJson["max_temp"] = status.MaximumFlowTemperature;
+            payloadJson["temp_unit"] = "C";
+            payloadJson["temp_step"] = hp::get_temperature_step();
+        }
 
         JsonArray modes = payloadJson.createNestedArray("modes");
         modes.add("heat");
@@ -134,25 +212,55 @@ namespace ehal::mqtt
         log_web("Published homeassistant auto-discovery topic");
     }
 
-    void publish_status_available()
-    {        
-        mqttClient.publish(mqttAvailabilityTopic.c_str(), "online", true);
-        log_web("Published HP status: online");
-    }
-
-    void publish_status_unavailable()
+    void publish_availability()
     {
-        mqttClient.publish(mqttAvailabilityTopic.c_str(), "offline", true);
-        log_web("Published HP status: offline");
+        static String status;
+        bool statusChanged = false;
+
+        if (hp::is_connected())
+        {
+            if (status != "online")
+                statusChanged = true;
+
+            status = F("online");
+        }
+        else
+        {
+            if (status != "offline")
+                statusChanged = true;
+
+            status = F("offline");
+        }
+
+        // Don't re-publish if nothing's changed since the last time we advertised the state.
+        if (!statusChanged)
+            return;
+
+        if (mqttClient.publish(mqttAvailabilityTopic.c_str(), status.c_str(), true))
+        {
+            log_web("Published HP availability: %s", status);
+        }
+        else
+        {
+            // If we failed to publish the status, we'll need to re-publush availability when
+            // the connection is recovered.
+            status.clear();
+        }
     }
 
     void publish_status()
-    {        
-        DynamicJsonDocument json(1024);        
-        json["temperature"] = hp::get_initial_temperature();
-        json["curr_temp"] = hp::get_current_temperature();
-        json["mode"] = hp::get_current_mode();
-        json["action"] = hp::get_current_action();
+    {
+        DynamicJsonDocument json(1024);
+
+        {
+            auto& status = hp::get_status();
+            std::lock_guard<hp::Status> lock{status};
+
+            json["temperature"] = status.Zone1SetTemperature;
+            json["curr_temp"] = status.Zone1RoomTemperature;
+            json["mode"] = status.ha_mode_as_string();
+            json["action"] = status.ha_action_as_string();
+        }
 
         String mqttOutput;
         serializeJson(json, mqttOutput);
@@ -189,7 +297,6 @@ namespace ehal::mqtt
         {
             log_web("Successfully established MQTT client connection!");
             publish_homeassistant_auto_discover();
-            publish_status_available();
         }
 
         return true;
@@ -206,13 +313,14 @@ namespace ehal::mqtt
         }
 
         Config& config = config_instance();
+        mqttClient.setKeepAlive(15);
         mqttClient.setServer(config.MqttServer.c_str(), config.MqttPort);
-        mqttClient.setCallback(mqtt_callback);        
+        mqttClient.setCallback(mqtt_callback);
 
         // (At least) the first attempt to connect MQTT with valid credentials always seems
         // to fail, so
         for (int i = 0; i < 5; ++i)
-        {            
+        {
             if (!connect())
             {
                 std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -225,12 +333,9 @@ namespace ehal::mqtt
 
         // https://www.home-assistant.io/integrations/mqtt/
         // <discovery_prefix>/<component>/<object_id>/
-        mqttDiscovery = String("homeassistant/climate/") + hp::entity_name() + "/config";
-        mqttModeSetTopic = config.MqttTopic + "/" + hp::entity_name() + "/mode/set";
-        mqttStateTopic = config.MqttTopic + "/" + hp::entity_name() + "/state";
-        mqttAvailabilityTopic = config.MqttTopic + "/" + hp::entity_name() + "/availability";
-
-        mqttClient.subscribe(mqttModeSetTopic.c_str());
+        mqttDiscovery = String("homeassistant/climate/") + entity_name() + "/config";
+        mqttStateTopic = config.MqttTopic + "/" + entity_name() + "/state";
+        mqttAvailabilityTopic = config.MqttTopic + "/" + entity_name() + "/availability";
 
         return true;
     }
@@ -239,10 +344,19 @@ namespace ehal::mqtt
     {
         if (periodic_update_tick())
         {
-            connect();
-            publish_status();
+            connect(); // Re-establish MQTT connection if we need to.
+
+            publish_availability();
+
+            if (hp::is_connected())
+                publish_status();
         }
 
         mqttClient.loop();
+    }
+
+    bool is_connected()
+    {
+        return mqttClient.connected();
     }
 } // namespace ehal::mqtt

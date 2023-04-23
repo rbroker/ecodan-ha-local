@@ -1,4 +1,4 @@
-#include <WiFi.h>
+#include <WiFi.h>   
 #include <time.h>
 
 #include <chrono>
@@ -59,9 +59,9 @@ bool initialize_wifi_access_point()
 
 void update_time(bool force)
 {
-    static std::chrono::steady_clock::time_point last_time_update = std::chrono::steady_clock::now();
+    static auto last_time_update = std::chrono::steady_clock::now();
 
-    std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
+    auto now = std::chrono::steady_clock::now();
     if (force || now - last_time_update > (std::chrono::hours(24) + std::chrono::seconds(5)))
     {
         last_time_update = now;

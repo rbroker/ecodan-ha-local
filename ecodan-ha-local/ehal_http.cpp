@@ -5,6 +5,7 @@
 #include "ehal_html.h"
 #include "ehal_http.h"
 #include "ehal_js.h"
+#include "ehal_mqtt.h"
 #include "ehal_thirdparty.h"
 
 #include <DNSServer.h>
@@ -20,6 +21,40 @@ namespace ehal::http
     std::unique_ptr<DNSServer> dnsServer;
     String loginCookie;
     uint8_t failedLoginCount = 0;
+
+    String bool_to_emoji(bool value)
+    {
+        if (value)
+            return F("&#x2705;");
+        else
+            return F("&#x274C;");
+    }
+
+    String uint64_to_string(uint64_t value)
+    {
+        char buffer[20] = {};
+        snprintf(buffer, sizeof(buffer), "%lld", value);
+        return buffer;
+    }
+
+    String configuration_status()
+    {
+        Config& config = config_instance();
+
+        if (config.WifiSsid.isEmpty() || config.WifiPassword.isEmpty())
+            return F("&#x26A0; WiFi configuration is incomplete!");
+
+        if (config.MqttServer.isEmpty() || config.MqttPort == 0 || config.MqttUserName.isEmpty() || config.MqttPassword.isEmpty() || config.MqttTopic.isEmpty())
+            return F("&#x26A0; MQTT configuration is incomplete!");
+
+        if (config.DevicePassword.isEmpty())
+            return F("&#x1F513; Setting a Device Password is recommended!");
+
+        if (config.HostName != WiFi.getHostname())
+            return F("&#x26A0; Configured Hostname is not being used!");
+
+        return F("&#x2705;");
+    }
 
     String generate_login_cookie()
     {
@@ -90,6 +125,9 @@ namespace ehal::http
         String page{FPSTR(PAGE_TEMPLATE)};
         page.replace(F("{{PAGE_SCRIPT}}"), "");
         page.replace(F("{{PAGE_BODY}}"), FPSTR(BODY_TEMPLATE_HOME));
+        page.replace(F("{{hp_conn}}"), bool_to_emoji(hp::is_connected()));
+        page.replace(F("{{mqtt_conn}}"), bool_to_emoji(mqtt::is_connected()));
+        page.replace(F("{{config}}"), configuration_status());
         server.send(200, "text/html", page);
     }
 
@@ -98,12 +136,12 @@ namespace ehal::http
         if (show_login_if_required())
             return;
 
-        String page{FPSTR(PAGE_TEMPLATE)};                
+        String page{FPSTR(PAGE_TEMPLATE)};
         page.replace(F("{{PAGE_SCRIPT}}"), F("src='/configuration.js'"));
         page.replace(F("{{PAGE_BODY}}"), FPSTR(BODY_TEMPLATE_CONFIG));
 
         Config& config = config_instance();
-        page.replace(F("{{device_pw}}"), config.DevicePassword);        
+        page.replace(F("{{device_pw}}"), config.DevicePassword);
         page.replace(F("{{wifi_ssid}}"), config.WifiSsid);
         page.replace(F("{{wifi_pw}}"), config.WifiPassword);
         page.replace(F("{{hostname}}"), config.HostName);
@@ -129,7 +167,7 @@ namespace ehal::http
     void handle_save_configuration()
     {
         Config config;
-        config.DevicePassword = server.arg("device_pw");        
+        config.DevicePassword = server.arg("device_pw");
         config.WifiSsid = server.arg("wifi_ssid");
         config.WifiPassword = server.arg("wifi_pw");
         config.HostName = server.arg("hostname");
@@ -210,7 +248,7 @@ namespace ehal::http
         if (show_login_if_required())
             return;
 
-        String page{FPSTR(PAGE_TEMPLATE)};        
+        String page{FPSTR(PAGE_TEMPLATE)};
         page.replace(F("{{PAGE_SCRIPT}}"), F("src='/diagnostic.js'"));
         page.replace(F("{{PAGE_BODY}}"), FPSTR(BODY_TEMPLATE_DIAGNOSTICS));
 
@@ -234,7 +272,10 @@ namespace ehal::http
         page.replace(F("{{wifi_mac}}"), WiFi.macAddress());
         page.replace(F("{{wifi_tx_power}}"), String(WiFi.getTxPower()));
 
-        page.replace(F("{{ha_hp_entity}}"), FPSTR("climate.") + ehal::hp::entity_name());
+        page.replace(F("{{ha_hp_entity}}"), FPSTR("climate.") + ehal::mqtt::entity_name());
+
+        page.replace(F("{{hp_tx_count}}"), uint64_to_string(hp::get_rx_msg_count()));
+        page.replace(F("{{hp_rx_count}}"), uint64_to_string(hp::get_tx_msg_count()));
 
         server.send(200, F("text/html"), page);
     }
@@ -253,6 +294,33 @@ namespace ehal::http
         String page{FPSTR(PAGE_TEMPLATE)};
         page.replace(F("{{PAGE_SCRIPT}}"), "");
         page.replace(F("{{PAGE_BODY}}"), FPSTR(BODY_TEMPLATE_HEAT_PUMP));
+
+        {
+            auto& status = hp::get_status();
+            std::lock_guard<hp::Status> lock{status};
+
+            page.replace(F("{{z1_room_temp}}"), String(status.Zone1RoomTemperature, 1));
+            page.replace(F("{{z1_set_temp}}"), String(status.Zone1SetTemperature, 1));
+            page.replace(F("{{z2_room_temp}}"), String(status.Zone2RoomTemperature, 1));
+            page.replace(F("{{z2_set_temp}}"), String(status.Zone2SetTemperature, 1));
+            
+            page.replace(F("{{sh_consumed}}"), String(status.EnergyConsumedHeating));
+            page.replace(F("{{sh_delivered}}"), String(status.EnergyDeliveredHeating));
+            page.replace(F("{{sh_cop}}"), String(status.EnergyDeliveredHeating / status.EnergyConsumedHeating));
+            page.replace(F("{{dhw_consumed}}"), String(status.EnergyConsumedDhw));
+            page.replace(F("{{dhw_delivered}}"), String(status.EnergyDeliveredDhw));
+            page.replace(F("{{dhw_cop}}"), String(status.EnergyDeliveredDhw / status.EnergyConsumedDhw));
+
+            page.replace(F("{{mode_pwr}}"), status.power_as_string());
+            page.replace(F("{{mode_op}}"), status.operation_as_string());
+            page.replace(F("{{mode_hol}}"), bool_to_emoji(status.HolidayMode));
+            page.replace(F("{{mode_dhw_timer}}"), bool_to_emoji(status.DhwTimerMode));
+            page.replace(F("{{mode_heating}}"), status.heating_mode_as_string());
+            page.replace(F("{{mode_dhw}}"), status.dhw_mode_as_string());
+
+            page.replace(F("{{min_flow_temp}}"), String(status.MinimumFlowTemperature, 0));
+            page.replace(F("{{max_flow_temp}}"), String(status.MaximumFlowTemperature, 0));
+        }
 
         server.send(200, F("text/html"), page);
     }
@@ -358,7 +426,7 @@ namespace ehal::http
     }
 
     void handle_milligram_css()
-    {        
+    {
         server.send(200, "text/css", FPSTR(ehal::PAGE_CSS));
     }
 
@@ -430,6 +498,6 @@ namespace ehal::http
             dnsServer->processNextRequest();
         }
 
-        server.handleClient();        
+        server.handleClient();
     }
 } // namespace ehal::http

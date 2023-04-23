@@ -22,7 +22,22 @@ namespace ehal
     <a class="button button-clear column column-25" href="/diagnostics">Diagnostics</a>
     <a class="button button-clear column column-25" href="/heat_pump">Heat Pump</a>
 </nav>
-<br />)";
+<br />
+<h2>System Overview</h2>
+<table>
+    <tr>
+        <td>Heat Pump Connection:</td>
+        <td>{{hp_conn}}</td>
+    </tr>
+    <tr>
+        <td>MQTT Connection:</td>
+        <td>{{mqtt_conn}}</td>
+    </tr>
+    <tr>
+        <td>Configuration: </td>
+        <td>{{config}}</td>
+    </tr>
+</table>)";
 
     const char* BODY_TEMPLATE_CONFIG PROGMEM = R"(<h1>Configuration</h1>
 <nav class="row">
@@ -112,6 +127,7 @@ namespace ehal
     <a class="button button-outline column column-25" href="/diagnostics">Diagnostics</a>
     <a class="button button-clear column column-25" href="/heat_pump">Heat Pump</a>
 </nav>
+<br />
 <h2>Device Info</h2>
 <table>
     <tr>
@@ -173,6 +189,14 @@ namespace ehal
         <td>HomeAssistant Heat Pump Entity:</td>
         <td>{{ha_hp_entity}}</td>
     </tr>
+    <tr>
+        <td>Heat Pump Message Tx Count:</td>
+        <td>{{hp_tx_count}}</td>
+    </tr>
+    <tr>
+        <td>Heat Pump Message Rx Count:</td>
+        <td>{{hp_rx_count}}</td>
+    </tr>
 </table>
 <h2>Logs</h2>
 <pre><code class="column column-33 column-offset-33" style="max-height:250px;overflow:auto;" id="logs">
@@ -184,7 +208,78 @@ namespace ehal
     <a class="button button-clear column column-25" href="/configuration">Configuration</a>
     <a class="button button-clear column column-25" href="/diagnostics">Diagnostics</a>
     <a class="button button-outline column column-25" href="/heat_pump">Heat Pump</a>
-</nav>)";
+</nav>
+<br />
+<table>
+    <thead>
+        <th colspan="2">Zone 1</th>
+    <thead>
+    <tr>
+        <td>Room Temperature:</td>
+        <td>{{z1_room_temp}}&#176;C / {{z1_set_temp}}</td>
+    </tr>
+    <thead>
+        <th colspan="2">Zone 2</th>
+    <thead>
+    <tr>
+        <td>Room Temperature:</td>
+        <td>{{z2_room_temp}}&#176;C / {{z2_set_temp}}</td>
+    </tr>
+    <thead>
+        <th colspan="2">Efficiency</th>        
+    </thead>
+    <tr>
+        <td>Heating Consumption:</td>
+        <td>{{sh_consumed}}kWh</td>
+    </tr>
+    <tr>
+        <td>Heating Delivered:</td>
+        <td>{{sh_delivered}}kWh (COP: {{sh_cop}})</td>
+    </tr>
+    <tr>
+        <td>DHW Consumption:</td>
+        <td>{{dhw_consumed}}kWh</td>
+    </tr>
+    <tr>
+        <td>DHW Delivered:</td>
+        <td>{{dhw_delivered}}kWh (COP: {{dhw_cop}})</td>
+    </tr>
+    <thead>
+        <th colspan="2">Status</th>
+    </thead>
+    <tr>
+        <td>Power:</td>
+        <td>{{mode_pwr}}</td>
+    </tr>
+    <tr>
+        <td>Operation:</td>
+        <td>{{mode_op}}</td>
+    </tr>
+    <tr>
+        <td>Holiday Mode:</td>
+        <td>{{mode_hol}}</td>
+    </tr>
+    <tr>
+        <td>DHW Timer:</td>
+        <td>{{mode_dhw_timer}}</td>
+    </tr>
+    <tr>
+        <td>Heating:</td>
+        <td>{{mode_heating}}</td>
+    </tr>
+    <tr>
+        <td>Hot Water (DHW):</td>
+        <td>{{mode_dhw}}</td>
+    </tr>
+    <tr>
+        <td>Minimum Flow Temperature:</td>
+        <td>{{min_flow_temp}}&#176;C</td>
+    </tr>
+    <tr>
+        <td>Maximum Flow Temperature:</td>
+        <td>{{max_flow_temp}}&#176;C</td>
+    </tr>
+</table>)";
 
     const char* BODY_TEMPLATE_LOGIN PROGMEM = R"(<h1>Login</h1>
 <form method="post" action="verify_login">
