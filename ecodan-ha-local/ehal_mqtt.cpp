@@ -176,7 +176,7 @@ off
     {
         mqttClient.beginPublish(topic.c_str(), payload.length(), retain);
         mqttClient.print(payload);
-        return mqttClient.endPublish();        
+        return mqttClient.endPublish();
     }
 
     bool publish_mqtt(const String& topic, const DynamicJsonDocument& json, bool retain = false)
@@ -253,11 +253,7 @@ off
         payloadJson["payload_off"] = "off";
         payloadJson["payload_on"] = "on";
 
-        payloadJson["avty_t"] = availabilityTopic;
-        payloadJson["pl_not_avail"] = "offline";
-        payloadJson["pl_avail"] = "online";
-
-        if (!publish_mqtt(discoveryTopic, payloadJson, /* retain =*/true))        
+        if (!publish_mqtt(discoveryTopic, payloadJson, /* retain =*/true))
             log_web("Failed to publish homeassistant %s entity auto-discover", uniqueName.c_str());
     }
 
@@ -266,6 +262,7 @@ off
         // https://www.home-assistant.io/integrations/mqtt/
         publish_ha_climate_auto_discover();
         publish_ha_binary_sensor_auto_discover("mode_defrost");
+        publish_ha_binary_sensor_auto_discover("mode_dhw_boost");
 
         log_web("Published homeassistant auto-discovery topics");
     }
@@ -302,47 +299,6 @@ off
         if (publish_mqtt(availabilityTopic, status))
         {
             log_web("Published HP availability: %s", status.c_str());
-        }
-        else
-        {
-            // If we failed to publish the status, we'll need to re-publush availability when
-            // the connection is recovered.
-            status.clear();
-        }
-    }
-
-    void publish_binary_sensor_availability(const String& name)
-    {
-        static String status;
-        bool statusChanged = false;
-
-        if (hp::is_connected())
-        {
-            if (status != "online")
-            {
-                statusChanged = true;
-                publish_ha_binary_sensor_auto_discover(name);
-            }
-
-            status = F("online");
-        }
-        else
-        {
-            if (status != "offline")
-                statusChanged = true;
-
-            status = F("offline");
-        }
-
-        // Don't re-publish if nothing's changed since the last time we advertised the state.
-        if (!statusChanged)
-            return;
-
-        const auto& config = config_instance();
-        String availabilityTopic = config.MqttTopic + "/" + unique_entity_name(name) + "/availability";
-        if (publish_mqtt(availabilityTopic, status))
-        {
-            log_web("Published %s availability: %s", unique_entity_name(name).c_str(), status.c_str());
         }
         else
         {
@@ -450,20 +406,19 @@ off
 
     void handle_loop()
     {
-        if (periodic_update_tick())
+        if (hp::is_connected())
         {
-            connect(); // Re-establish MQTT connection if we need to.
-
-            publish_climate_availability();
-            publish_binary_sensor_availability("mode_defrost");
-
-            if (hp::is_connected())
+            if (periodic_update_tick())
             {
+                connect(); // Re-establish MQTT connection if we need to.
+
+                publish_climate_availability();
                 publish_climate_status();
 
                 auto& status = hp::get_status();
                 std::lock_guard<hp::Status> lock{status};
                 publish_binary_sensor_status("mode_defrost", status.DefrostActive);
+                publish_binary_sensor_status("mode_dhw_boost", status.DhwBoostActive);
             }
         }
 
