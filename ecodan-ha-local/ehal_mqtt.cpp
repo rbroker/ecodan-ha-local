@@ -236,7 +236,7 @@ off
         return true;
     }
 
-    bool publish_ha_binary_sensor_auto_discover(String name)
+    bool publish_ha_binary_sensor_auto_discover(const String& name)
     {
         const auto& config = config_instance();
         String uniqueName = unique_entity_name(name);
@@ -263,6 +263,33 @@ off
         return true;
     }
 
+    bool publish_ha_float_sensor_auto_discover(const String& name, const String& unit)
+    {
+        const auto& config = config_instance();
+        String uniqueName = unique_entity_name(name);
+        String discoveryTopic = String("homeassistant/sensor/") + uniqueName + "/config";
+        String stateTopic = config.MqttTopic + "/" + uniqueName + "/state";
+
+        // https://www.home-assistant.io/integrations/sensor.mqtt/
+        DynamicJsonDocument payloadJson(4096);
+        payloadJson["name"] = uniqueName;
+        payloadJson["unique_id"] = uniqueName;
+
+        add_discovery_device_object(payloadJson);
+
+        payloadJson["stat_t"] = stateTopic;
+        payloadJson["val_tpl"] = F("{{ value|float }}");
+        payloadJson["unit_of_meas"] = unit;
+
+        if (!publish_mqtt(discoveryTopic, payloadJson, /* retain =*/true))
+        {
+            log_web("Failed to publish homeassistant %s entity auto-discover", uniqueName.c_str());
+            return false;
+        }
+
+        return true;
+    }
+
     void publish_homeassistant_auto_discover()
     {
         if (!needsAutoDiscover)
@@ -278,6 +305,21 @@ off
             anyFailed = true;
 
         if (!publish_ha_binary_sensor_auto_discover("mode_dhw_boost"))
+            anyFailed = true;
+
+        if (!publish_ha_float_sensor_auto_discover("legionella_prevention_temp", "°C"))
+            anyFailed = true;
+
+        if (!publish_ha_float_sensor_auto_discover("dhw_temp_drop", "°C"))
+            anyFailed = true;
+        
+        if (!publish_ha_float_sensor_auto_discover("outside_temp", "°C"))
+            anyFailed = true;
+
+        if (!publish_ha_float_sensor_auto_discover("dhw_feed_temp", "°C"))
+            anyFailed = true;
+
+        if (!publish_ha_float_sensor_auto_discover("dhw_return_temp", "°C"))
             anyFailed = true;
 
         if (!anyFailed)
@@ -313,6 +355,15 @@ off
         const auto& config = config_instance();
         String stateTopic = config.MqttTopic + "/" + unique_entity_name(name) + "/state";
         if (!publish_mqtt(stateTopic, state))
+            log_web("Failed to publish MQTT state for: %s", unique_entity_name(name));
+    }
+
+    template<typename T>
+    void publish_sensor_status(const String& name, T value)
+    {        
+        const auto& config = config_instance();
+        String stateTopic = config.MqttTopic + "/" + unique_entity_name(name) + "/state";
+        if (!publish_mqtt(stateTopic, String(value)))
             log_web("Failed to publish MQTT state for: %s", unique_entity_name(name));
     }
 
@@ -400,6 +451,11 @@ off
                 std::lock_guard<hp::Status> lock{status};
                 publish_binary_sensor_status("mode_defrost", status.DefrostActive);
                 publish_binary_sensor_status("mode_dhw_boost", status.DhwBoostActive);
+                publish_sensor_status<float>("legionella_prevention_temp", status.LegionellaPreventionSetPoint);
+                publish_sensor_status<float>("dhw_temp_drop", status.DhwTemperatureDrop);
+                publish_sensor_status<float>("outside_temp", status.OutsideTemperature);
+                publish_sensor_status<float>("dhw_feed_temp", status.DhwFeedTemperature);
+                publish_sensor_status<float>("dhw_return_temp", status.DhwReturnTemperature);
             }
         }
 

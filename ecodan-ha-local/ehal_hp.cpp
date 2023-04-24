@@ -253,7 +253,7 @@ namespace ehal::hp
             case GetType::SH_TEMPERATURE_STATE:
                 status.Zone1RoomTemperature = res.get_float16(1);
                 status.Zone2RoomTemperature = res.get_float16(7);
-                status.OutsideTemperature = res.get_float16(11);
+                status.OutsideTemperature = res.get_float8(11);
                 break;
             case GetType::DHW_TEMPERATURE_STATE_A:
                 status.DhwFeedTemperature = res.get_float16(1);
