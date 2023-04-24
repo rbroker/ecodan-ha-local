@@ -205,6 +205,8 @@ namespace ehal::hp
     Status& get_status();
 
     float get_temperature_step();
+    float get_min_thermostat_temperature();
+    float get_max_thermostat_temperature();
 
     bool begin_connect(OnConnectionEstablishedCallback callback);
     bool begin_update_status(OnStatusUpdatedCallback callback);

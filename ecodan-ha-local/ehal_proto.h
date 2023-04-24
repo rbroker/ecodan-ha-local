@@ -190,6 +190,7 @@ namespace ehal::hp
 
         void increment_write_offset(size_t n)
         {
+            valid_ = true;
             writeOffset_ += n;
         }
 

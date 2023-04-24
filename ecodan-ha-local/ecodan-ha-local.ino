@@ -111,6 +111,5 @@ void loop()
         ehal::mqtt::handle_loop();
 
     update_time(/* force =*/false);
-
-    delay(25);
+    delay(1);
 }

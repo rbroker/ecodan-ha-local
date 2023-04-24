@@ -14,7 +14,7 @@ namespace ehal::hp
 {
     HardwareSerial port = Serial1;
 
-    bool debugDumpPackets = true;
+    bool debugDumpPackets = false;
     uint64_t rxMsgCount = 0;
     uint64_t txMsgCount = 0;
     std::thread serialRxThread;
@@ -91,8 +91,7 @@ namespace ehal::hp
         // It shouldn't take long to receive the rest of the payload after we get the header.
         size_t remainingBytes = msg.payload_size() + CHECKSUM_SIZE;        
         while (port.available() < remainingBytes)
-        {
-            log_web_ratelimit("Awaiting serial payload data...");
+        {            
             delay(1);
         }
 
@@ -139,7 +138,10 @@ namespace ehal::hp
             std::lock_guard<std::mutex> lock{getStatusCmdQueueMutex};
 
             if (getStatusCmdQueue.empty())
+            {
+                log_web("Finished processing all queued status update requests!");
                 return true;
+            }
 
             msg = std::move(getStatusCmdQueue.front());
             getStatusCmdQueue.pop();
@@ -204,6 +206,16 @@ namespace ehal::hp
     float get_temperature_step()
     {
         return temperatureStep;
+    }
+
+    float get_min_thermostat_temperature()
+    {
+        return 8.0f;        
+    }
+
+    float get_max_thermostat_temperature()
+    {
+        return 28.0f;
     }
 
     void handle_set_response(Message& res)

@@ -9,6 +9,7 @@
 #include <WiFiClient.h>
 
 #include <chrono>
+#include <cmath>
 #include <thread>
 
 namespace ehal::mqtt
@@ -17,7 +18,13 @@ namespace ehal::mqtt
     PubSubClient mqttClient(espClient);
     String mqttDiscovery;
     String mqttStateTopic;
-    String mqttAvailabilityTopic;  
+    String mqttAvailabilityTopic;
+
+    // https://arduinojson.org/v6/how-to/configure-the-serialization-of-floats/#how-to-reduce-the-number-of-decimal-places
+    double round2(double value)
+    {
+        return (int)(value * 100 + 0.5) / 100.0;
+    }
 
     String get_mode_status_template()
     {
@@ -66,8 +73,8 @@ off
         std::lock_guard<hp::Status> lock{status};
 
         tpl.replace(F("\n"), "");
-        tpl.replace(F("{{min_temp}}"), String(status.MinimumFlowTemperature));
-        tpl.replace(F("{{max_temp}}"), String(status.MaximumFlowTemperature));
+        tpl.replace(F("{{min_temp}}"), String(hp::get_min_thermostat_temperature()));
+        tpl.replace(F("{{max_temp}}"), String(hp::get_max_thermostat_temperature()));
         tpl.trim();
 
         return tpl;
@@ -193,8 +200,8 @@ off
             std::lock_guard<hp::Status> lock{status};
 
             payloadJson["initial"] = status.Zone1SetTemperature;
-            payloadJson["min_temp"] = status.MinimumFlowTemperature;
-            payloadJson["max_temp"] = status.MaximumFlowTemperature;
+            payloadJson["min_temp"] = hp::get_min_thermostat_temperature();
+            payloadJson["max_temp"] = hp::get_max_thermostat_temperature();
             payloadJson["temp_unit"] = "C";
             payloadJson["temp_step"] = hp::get_temperature_step();
         }
@@ -219,10 +226,10 @@ off
 
         if (hp::is_connected())
         {
-            if (status != "online")            
+            if (status != "online")
             {
                 statusChanged = true;
-                publish_homeassistant_auto_discover();            
+                publish_homeassistant_auto_discover();
             }
 
             status = F("online");
@@ -239,7 +246,7 @@ off
         if (!statusChanged)
             return;
 
-        if (mqttClient.publish(mqttAvailabilityTopic.c_str(), status.c_str(), true))
+        if (mqttClient.publish(mqttAvailabilityTopic.c_str(), status.c_str(), false))
         {
             log_web("Published HP availability: %s", status);
         }
@@ -259,8 +266,8 @@ off
             auto& status = hp::get_status();
             std::lock_guard<hp::Status> lock{status};
 
-            json["temperature"] = String(status.Zone1SetTemperature, 1);
-            json["curr_temp"] = String(status.Zone1RoomTemperature, 1);
+            json["temperature"] = round2(status.Zone1SetTemperature);
+            json["curr_temp"] = round2(status.Zone1RoomTemperature);
             json["mode"] = status.ha_mode_as_string();
             json["action"] = status.ha_action_as_string();
         }
@@ -298,7 +305,7 @@ off
 
         if (mqttClient.connected())
         {
-            log_web("Successfully established MQTT client connection!");            
+            log_web("Successfully established MQTT client connection!");
         }
 
         return true;
