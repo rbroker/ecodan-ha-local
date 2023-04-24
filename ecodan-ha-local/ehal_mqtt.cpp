@@ -144,10 +144,10 @@ off
         if (!is_configured())
             return false;
 
-        static auto last_attempt = std::chrono::steady_clock::now();
-
         auto now = std::chrono::steady_clock::now();
-        if (now - last_attempt < std::chrono::seconds(10))
+        static auto last_attempt = now + std::chrono::seconds(35);
+
+        if (now - last_attempt < std::chrono::seconds(30))
             return false;
 
         last_attempt = now;
@@ -157,7 +157,10 @@ off
 
     String unique_entity_name(const String& name)
     {
-        return name + "_" + device_mac();
+        String n = name;
+        n.toLowerCase();
+        n.replace(" ", "_");
+        return n + "_" + device_mac();
     }
 
     void add_discovery_device_object(DynamicJsonDocument& doc)
@@ -190,14 +193,14 @@ off
     bool publish_ha_climate_auto_discover()
     {
         // https://www.home-assistant.io/integrations/climate.mqtt/
-        String uniqueName = unique_entity_name("climate_control");
+        String uniqueName = unique_entity_name("Climate");
 
         const auto& config = config_instance();
         String discoveryTopic = String("homeassistant/climate/") + uniqueName + "/config";
         String stateTopic = config.MqttTopic + "/" + uniqueName + "/state";
 
         DynamicJsonDocument payloadJson(8192);
-        payloadJson["name"] = uniqueName;
+        payloadJson["name"] = F("Climate");
         payloadJson["unique_id"] = uniqueName;
         payloadJson["icon"] = "mdi:heat-pump-outline";
 
@@ -245,7 +248,7 @@ off
 
         // https://www.home-assistant.io/integrations/binary_sensor.mqtt/
         DynamicJsonDocument payloadJson(4096);
-        payloadJson["name"] = uniqueName;
+        payloadJson["name"] = name;
         payloadJson["unique_id"] = uniqueName;
 
         add_discovery_device_object(payloadJson);
@@ -272,7 +275,7 @@ off
 
         // https://www.home-assistant.io/integrations/sensor.mqtt/
         DynamicJsonDocument payloadJson(4096);
-        payloadJson["name"] = uniqueName;
+        payloadJson["name"] = name;
         payloadJson["unique_id"] = uniqueName;
 
         add_discovery_device_object(payloadJson);
@@ -280,6 +283,32 @@ off
         payloadJson["stat_t"] = stateTopic;
         payloadJson["val_tpl"] = F("{{ value|float }}");
         payloadJson["unit_of_meas"] = unit;
+
+        if (!publish_mqtt(discoveryTopic, payloadJson, /* retain =*/true))
+        {
+            log_web("Failed to publish homeassistant %s entity auto-discover", uniqueName.c_str());
+            return false;
+        }
+
+        return true;
+    }
+
+    bool publish_ha_string_sensor_auto_discover(const String& name)
+    {
+        const auto& config = config_instance();
+        String uniqueName = unique_entity_name(name);
+        String discoveryTopic = String("homeassistant/sensor/") + uniqueName + "/config";
+        String stateTopic = config.MqttTopic + "/" + uniqueName + "/state";
+
+        // https://www.home-assistant.io/integrations/sensor.mqtt/
+        DynamicJsonDocument payloadJson(4096);
+        payloadJson["name"] = name;
+        payloadJson["unique_id"] = uniqueName;
+
+        add_discovery_device_object(payloadJson);
+
+        payloadJson["stat_t"] = stateTopic;
+        payloadJson["val_tpl"] = F("{{ value }}");
 
         if (!publish_mqtt(discoveryTopic, payloadJson, /* retain =*/true))
         {
@@ -301,25 +330,49 @@ off
         if (!publish_ha_climate_auto_discover())
             anyFailed = true;
 
-        if (!publish_ha_binary_sensor_auto_discover("mode_defrost"))
+        if (!publish_ha_binary_sensor_auto_discover("Defrost Mode"))
             anyFailed = true;
 
-        if (!publish_ha_binary_sensor_auto_discover("mode_dhw_boost"))
+        if (!publish_ha_binary_sensor_auto_discover("DHW Boost"))
             anyFailed = true;
 
-        if (!publish_ha_float_sensor_auto_discover("legionella_prevention_temp", "°C"))
+        if (!publish_ha_float_sensor_auto_discover("Legionella Prevention Temperature", "°C"))
             anyFailed = true;
 
-        if (!publish_ha_float_sensor_auto_discover("dhw_temp_drop", "°C"))
-            anyFailed = true;
-        
-        if (!publish_ha_float_sensor_auto_discover("outside_temp", "°C"))
+        if (!publish_ha_float_sensor_auto_discover("DHW Temperature Drop", "°C"))
             anyFailed = true;
 
-        if (!publish_ha_float_sensor_auto_discover("dhw_feed_temp", "°C"))
+        if (!publish_ha_float_sensor_auto_discover("Outside Temperature", "°C"))
             anyFailed = true;
 
-        if (!publish_ha_float_sensor_auto_discover("dhw_return_temp", "°C"))
+        if (!publish_ha_float_sensor_auto_discover("DHW Feed Temperature", "°C"))
+            anyFailed = true;
+
+        if (!publish_ha_float_sensor_auto_discover("DHW Return Temperature", "°C"))
+            anyFailed = true;
+
+        if (!publish_ha_float_sensor_auto_discover("Boiler Flow Temperature", "°C"))
+            anyFailed = true;
+
+        if (!publish_ha_float_sensor_auto_discover("Boiler Return Temperature", "°C"))
+            anyFailed = true;
+
+        if (!publish_ha_float_sensor_auto_discover("DHW Flow Temperature Target", "°C"))
+            anyFailed = true;
+
+        if (!publish_ha_float_sensor_auto_discover("Radiator Flow Temperature Target", "°C"))
+            anyFailed = true;
+
+        if (!publish_ha_string_sensor_auto_discover("Power"))
+            anyFailed = true;
+
+        if (!publish_ha_string_sensor_auto_discover("Operation"))
+            anyFailed = true;
+
+        if (!publish_ha_string_sensor_auto_discover("DHW Mode"))
+            anyFailed = true;
+
+        if (!publish_ha_string_sensor_auto_discover("Heating Mode"))
             anyFailed = true;
 
         if (!anyFailed)
@@ -344,9 +397,9 @@ off
         }
 
         const auto& config = config_instance();
-        String stateTopic = config.MqttTopic + "/" + unique_entity_name("climate_control") + "/state";
+        String stateTopic = config.MqttTopic + "/" + unique_entity_name("Climate") + "/state";
         if (!publish_mqtt(stateTopic, json))
-            log_web("Failed to publish MQTT state for: %s", unique_entity_name("climate_control"));
+            log_web("Failed to publish MQTT state for: %s", unique_entity_name("Climate"));
     }
 
     void publish_binary_sensor_status(const String& name, bool on)
@@ -358,9 +411,9 @@ off
             log_web("Failed to publish MQTT state for: %s", unique_entity_name(name));
     }
 
-    template<typename T>
+    template <typename T>
     void publish_sensor_status(const String& name, T value)
-    {        
+    {
         const auto& config = config_instance();
         String stateTopic = config.MqttTopic + "/" + unique_entity_name(name) + "/state";
         if (!publish_mqtt(stateTopic, String(value)))
@@ -449,13 +502,21 @@ off
 
                 auto& status = hp::get_status();
                 std::lock_guard<hp::Status> lock{status};
-                publish_binary_sensor_status("mode_defrost", status.DefrostActive);
-                publish_binary_sensor_status("mode_dhw_boost", status.DhwBoostActive);
-                publish_sensor_status<float>("legionella_prevention_temp", status.LegionellaPreventionSetPoint);
-                publish_sensor_status<float>("dhw_temp_drop", status.DhwTemperatureDrop);
-                publish_sensor_status<float>("outside_temp", status.OutsideTemperature);
-                publish_sensor_status<float>("dhw_feed_temp", status.DhwFeedTemperature);
-                publish_sensor_status<float>("dhw_return_temp", status.DhwReturnTemperature);
+                publish_binary_sensor_status("Defrost Mode", status.DefrostActive);
+                publish_binary_sensor_status("DHW Boost", status.DhwBoostActive);
+                publish_sensor_status<float>("Legionella Prevention Temperature", status.LegionellaPreventionSetPoint);
+                publish_sensor_status<float>("DHW Drop Temperature", status.DhwTemperatureDrop);
+                publish_sensor_status<float>("Outside Temperature", status.OutsideTemperature);
+                publish_sensor_status<float>("DHW Feed Temperature", status.DhwFeedTemperature);
+                publish_sensor_status<float>("DHW Return Temperature", status.DhwReturnTemperature);
+                publish_sensor_status<float>("Boiler Flow Temperature", status.BoilerFlowTemperature);
+                publish_sensor_status<float>("Boiler Return Temperature", status.BoilerReturnTemperature);
+                publish_sensor_status<float>("DHW Flow Temperature Target", status.DhwFlowTemperatureSetPoint);
+                publish_sensor_status<float>("Radiator Flow Temperature Target", status.RadiatorFlowTemperatureSetPoint);
+                publish_sensor_status<String>("Power", status.power_as_string());
+                publish_sensor_status<String>("Operation", status.operation_as_string());
+                publish_sensor_status<String>("DHW Mode", status.dhw_mode_as_string());
+                publish_sensor_status<String>("Heating Mode", status.heating_mode_as_string());
             }
         }
 
