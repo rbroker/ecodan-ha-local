@@ -2,7 +2,7 @@
 
 namespace ehal::mqtt
 {
-    String entity_name();
+    String unique_entity_name(const String& name);
 
     bool initialize();
     void handle_loop();

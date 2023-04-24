@@ -283,7 +283,7 @@ namespace ehal::http
         page.replace(F("{{wifi_mac}}"), WiFi.macAddress());
         page.replace(F("{{wifi_tx_power}}"), String(WiFi.getTxPower()));
 
-        page.replace(F("{{ha_hp_entity}}"), FPSTR("climate.") + ehal::mqtt::entity_name());
+        page.replace(F("{{ha_hp_entity}}"), FPSTR("climate.") + ehal::mqtt::unique_entity_name("climate_control"));
 
         page.replace(F("{{hp_tx_count}}"), uint64_to_string(hp::get_tx_msg_count()));
         page.replace(F("{{hp_rx_count}}"), uint64_to_string(hp::get_rx_msg_count()));

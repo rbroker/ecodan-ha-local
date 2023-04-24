@@ -16,9 +16,6 @@ namespace ehal::mqtt
 {
     WiFiClient espClient;
     PubSubClient mqttClient(espClient);
-    String mqttDiscovery;
-    String mqttStateTopic;
-    String mqttAvailabilityTopic;
 
     // https://arduinojson.org/v6/how-to/configure-the-serialization-of-floats/#how-to-reduce-the-number-of-decimal-places
     double round2(double value)
@@ -157,41 +154,64 @@ off
         return true;
     }
 
-    String entity_name()
+    String unique_entity_name(const String& name)
     {
-        return String("ecodan_hp_") + device_mac();
+        return device_mac() + "_" + name;
     }
 
-    void publish_homeassistant_auto_discover()
+    void add_discovery_device_object(DynamicJsonDocument& doc)
     {
-        // https://www.home-assistant.io/integrations/mqtt/
-        // https://www.home-assistant.io/integrations/climate.mqtt/
-
-        DynamicJsonDocument payloadJson(4096);
-        payloadJson["name"] = entity_name();
-        payloadJson["unique_id"] = device_mac();
-        payloadJson["icon"] = "mdi:heat-pump-outline";
-
-        JsonObject device = payloadJson.createNestedObject("device");
+        JsonObject device = doc.createNestedObject("device");
         JsonArray identifiers = device.createNestedArray("ids");
-        identifiers.add(entity_name());
+        identifiers.add(device_mac());
 
-        device["name"] = entity_name();
+        device["name"] = "Mitsubishi A2W Heat Pump";
         device["sw"] = get_software_version();
         device["mdl"] = hp::get_device_model();
         device["mf"] = "MITSUBISHI ELECTRIC";
         device["cu"] = String("http://") + WiFi.localIP().toString() + "/configuration";
+    }
 
-        payloadJson["device_class"] = "climate";
-        payloadJson["mode_stat_t"] = mqttStateTopic;
+    bool publish_mqtt(const String& topic, const String& payload, bool retain = false)
+    {
+        mqttClient.beginPublish(topic.c_str(), payload.length(), retain);
+        mqttClient.print(payload);
+        return mqttClient.endPublish();        
+    }
+
+    bool publish_mqtt(const String& topic, const DynamicJsonDocument& json, bool retain = false)
+    {
+        String output;
+        serializeJson(json, output);
+        return publish_mqtt(topic, output, retain);
+    }
+
+    void publish_ha_climate_auto_discover()
+    {
+        // https://www.home-assistant.io/integrations/climate.mqtt/
+        String uniqueName = unique_entity_name("climate_control");
+
+        const auto& config = config_instance();
+        String discoveryTopic = String("homeassistant/climate/") + uniqueName + "/config";
+        String stateTopic = config.MqttTopic + "/" + uniqueName + "/state";
+        String availabilityTopic = config.MqttTopic + "/" + uniqueName + "/availability";
+
+        DynamicJsonDocument payloadJson(8192);
+        payloadJson["name"] = uniqueName;
+        payloadJson["unique_id"] = uniqueName;
+        payloadJson["icon"] = "mdi:heat-pump-outline";
+
+        add_discovery_device_object(payloadJson);
+
+        payloadJson["mode_stat_t"] = stateTopic;
         payloadJson["mode_stat_tpl"] = get_mode_status_template();
-        payloadJson["act_t"] = mqttStateTopic;
+        payloadJson["act_t"] = stateTopic;
         payloadJson["act_tpl"] = get_action_status_template();
-        payloadJson["temp_stat_t"] = mqttStateTopic;
+        payloadJson["temp_stat_t"] = stateTopic;
         payloadJson["temp_stat_tpl"] = get_temperature_status_template();
-        payloadJson["curr_temp_t"] = mqttStateTopic;
+        payloadJson["curr_temp_t"] = stateTopic;
         payloadJson["curr_temp_tpl"] = get_current_temperature_status_template();
-        payloadJson["avty_t"] = mqttAvailabilityTopic;
+        payloadJson["avty_t"] = availabilityTopic;
         payloadJson["pl_not_avail"] = "offline";
         payloadJson["pl_avail"] = "online";
 
@@ -210,16 +230,47 @@ off
         modes.add("heat");
         modes.add("off");
 
-        String output;
-        serializeJson(payloadJson, output);
-        mqttClient.beginPublish(mqttDiscovery.c_str(), output.length(), true);
-        mqttClient.print(output);
-        mqttClient.endPublish();
-
-        log_web("Published homeassistant auto-discovery topic");
+        if (!publish_mqtt(discoveryTopic, payloadJson, /* retain =*/true))
+            log_web("Failed to publish homeassistant climate entity auto-discover");
     }
 
-    void publish_availability()
+    void publish_ha_binary_sensor_auto_discover(String name)
+    {
+        const auto& config = config_instance();
+        String uniqueName = unique_entity_name(name);
+        String discoveryTopic = String("homeassistant/binary_sensor/") + uniqueName + "/config";
+        String stateTopic = config.MqttTopic + "/" + uniqueName + "/state";
+        String availabilityTopic = config.MqttTopic + "/" + uniqueName + "/availability";
+
+        // https://www.home-assistant.io/integrations/binary_sensor.mqtt/
+        DynamicJsonDocument payloadJson(4096);
+        payloadJson["name"] = uniqueName;
+        payloadJson["unique_id"] = uniqueName;
+
+        add_discovery_device_object(payloadJson);
+
+        payloadJson["stat_t"] = stateTopic;
+        payloadJson["payload_off"] = "off";
+        payloadJson["payload_on"] = "on";
+
+        payloadJson["avty_t"] = availabilityTopic;
+        payloadJson["pl_not_avail"] = "offline";
+        payloadJson["pl_avail"] = "online";
+
+        if (!publish_mqtt(discoveryTopic, payloadJson, /* retain =*/true))        
+            log_web("Failed to publish homeassistant %s entity auto-discover", uniqueName.c_str());
+    }
+
+    void publish_homeassistant_auto_discover()
+    {
+        // https://www.home-assistant.io/integrations/mqtt/
+        publish_ha_climate_auto_discover();
+        publish_ha_binary_sensor_auto_discover("mode_defrost");
+
+        log_web("Published homeassistant auto-discovery topics");
+    }
+
+    void publish_climate_availability()
     {
         static String status;
         bool statusChanged = false;
@@ -229,7 +280,7 @@ off
             if (status != "online")
             {
                 statusChanged = true;
-                publish_homeassistant_auto_discover();
+                publish_ha_climate_auto_discover();
             }
 
             status = F("online");
@@ -246,9 +297,11 @@ off
         if (!statusChanged)
             return;
 
-        if (mqttClient.publish(mqttAvailabilityTopic.c_str(), status.c_str(), false))
+        const auto& config = config_instance();
+        String availabilityTopic = config.MqttTopic + "/" + unique_entity_name("climate_control") + "/availability";
+        if (publish_mqtt(availabilityTopic, status))
         {
-            log_web("Published HP availability: %s", status);
+            log_web("Published HP availability: %s", status.c_str());
         }
         else
         {
@@ -258,7 +311,48 @@ off
         }
     }
 
-    void publish_status()
+    void publish_binary_sensor_availability(const String& name)
+    {
+        static String status;
+        bool statusChanged = false;
+
+        if (hp::is_connected())
+        {
+            if (status != "online")
+            {
+                statusChanged = true;
+                publish_ha_binary_sensor_auto_discover(name);
+            }
+
+            status = F("online");
+        }
+        else
+        {
+            if (status != "offline")
+                statusChanged = true;
+
+            status = F("offline");
+        }
+
+        // Don't re-publish if nothing's changed since the last time we advertised the state.
+        if (!statusChanged)
+            return;
+
+        const auto& config = config_instance();
+        String availabilityTopic = config.MqttTopic + "/" + unique_entity_name(name) + "/availability";
+        if (publish_mqtt(availabilityTopic, status))
+        {
+            log_web("Published %s availability: %s", unique_entity_name(name).c_str(), status.c_str());
+        }
+        else
+        {
+            // If we failed to publish the status, we'll need to re-publush availability when
+            // the connection is recovered.
+            status.clear();
+        }
+    }
+
+    void publish_climate_status()
     {
         DynamicJsonDocument json(1024);
 
@@ -272,10 +366,19 @@ off
             json["action"] = status.ha_action_as_string();
         }
 
-        String mqttOutput;
-        serializeJson(json, mqttOutput);
+        const auto& config = config_instance();
+        String stateTopic = config.MqttTopic + "/" + unique_entity_name("climate_control") + "/state";
+        if (!publish_mqtt(stateTopic, json))
+            log_web("Failed to publish MQTT state for: %s", unique_entity_name("climate_control"));
+    }
 
-        mqttClient.publish_P(mqttStateTopic.c_str(), mqttOutput.c_str(), false);
+    void publish_binary_sensor_status(const String& name, bool on)
+    {
+        String state = on ? "on" : "off";
+        const auto& config = config_instance();
+        String stateTopic = config.MqttTopic + "/" + unique_entity_name(name) + "/state";
+        if (!publish_mqtt(stateTopic, state))
+            log_web("Failed to publish MQTT state for: %s", unique_entity_name(name));
     }
 
     bool connect()
@@ -307,6 +410,8 @@ off
         {
             log_web("Successfully established MQTT client connection!");
         }
+
+        publish_homeassistant_auto_discover();
 
         return true;
     }
@@ -340,12 +445,6 @@ off
             }
         }
 
-        // https://www.home-assistant.io/integrations/mqtt/
-        // <discovery_prefix>/<component>/<object_id>/
-        mqttDiscovery = String("homeassistant/climate/") + entity_name() + "/config";
-        mqttStateTopic = config.MqttTopic + "/" + entity_name() + "/state";
-        mqttAvailabilityTopic = config.MqttTopic + "/" + entity_name() + "/availability";
-
         return true;
     }
 
@@ -355,10 +454,17 @@ off
         {
             connect(); // Re-establish MQTT connection if we need to.
 
-            publish_availability();
+            publish_climate_availability();
+            publish_binary_sensor_availability("mode_defrost");
 
             if (hp::is_connected())
-                publish_status();
+            {
+                publish_climate_status();
+
+                auto& status = hp::get_status();
+                std::lock_guard<hp::Status> lock{status};
+                publish_binary_sensor_status("mode_defrost", status.DefrostActive);
+            }
         }
 
         mqttClient.loop();

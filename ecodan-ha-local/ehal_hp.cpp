@@ -138,8 +138,7 @@ namespace ehal::hp
             std::lock_guard<std::mutex> lock{getStatusCmdQueueMutex};
 
             if (getStatusCmdQueue.empty())
-            {
-                log_web("Finished processing all queued status update requests!");
+            {                
                 return true;
             }
 
@@ -399,10 +398,6 @@ namespace ehal::hp
                 if (!begin_get_status(nullptr))
                 {
                     log_web("Failed to begin heatpump status update!");
-                }
-                else
-                {
-                    log_web("Successfully triggered heatpump status update!");
                 }
             }
         }
