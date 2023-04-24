@@ -46,8 +46,10 @@ namespace ehal
     }
 
     function clear_config() {
-        disable_all_inputs();
-        window.location = '/clear_config';
+        if (window.confirm("This will reset all configuration settings to their default values and reboot the device. Are you sure?")) {
+            disable_all_inputs();
+            window.location = '/clear_config';
+        }
     }
 
     function toggle_inputs(state) {
