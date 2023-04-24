@@ -150,6 +150,7 @@ namespace ehal
                         element.textContent += jsonResponse.messages[i] + '\n';
                     }
                 }
+                element.scrollTop = element.scrollHeight;
             }
         }
         xhttp.send();
