@@ -14,6 +14,7 @@
 
 namespace ehal::mqtt
 {
+    bool needsAutoDiscover = true;
     WiFiClient espClient;
     PubSubClient mqttClient(espClient);
 
@@ -156,7 +157,7 @@ off
 
     String unique_entity_name(const String& name)
     {
-        return device_mac() + "_" + name;
+        return name + "_" + device_mac();
     }
 
     void add_discovery_device_object(DynamicJsonDocument& doc)
@@ -186,14 +187,14 @@ off
         return publish_mqtt(topic, output, retain);
     }
 
-    void publish_ha_climate_auto_discover()
+    bool publish_ha_climate_auto_discover()
     {
         // https://www.home-assistant.io/integrations/climate.mqtt/
         String uniqueName = unique_entity_name("climate_control");
 
         const auto& config = config_instance();
         String discoveryTopic = String("homeassistant/climate/") + uniqueName + "/config";
-        String stateTopic = config.MqttTopic + "/" + uniqueName + "/state";        
+        String stateTopic = config.MqttTopic + "/" + uniqueName + "/state";
 
         DynamicJsonDocument payloadJson(8192);
         payloadJson["name"] = uniqueName;
@@ -227,15 +228,20 @@ off
         modes.add("off");
 
         if (!publish_mqtt(discoveryTopic, payloadJson, /* retain =*/true))
+        {
             log_web("Failed to publish homeassistant climate entity auto-discover");
+            return false;
+        }
+
+        return true;
     }
 
-    void publish_ha_binary_sensor_auto_discover(String name)
+    bool publish_ha_binary_sensor_auto_discover(String name)
     {
         const auto& config = config_instance();
         String uniqueName = unique_entity_name(name);
         String discoveryTopic = String("homeassistant/binary_sensor/") + uniqueName + "/config";
-        String stateTopic = config.MqttTopic + "/" + uniqueName + "/state";        
+        String stateTopic = config.MqttTopic + "/" + uniqueName + "/state";
 
         // https://www.home-assistant.io/integrations/binary_sensor.mqtt/
         DynamicJsonDocument payloadJson(4096);
@@ -249,17 +255,36 @@ off
         payloadJson["payload_on"] = "on";
 
         if (!publish_mqtt(discoveryTopic, payloadJson, /* retain =*/true))
+        {
             log_web("Failed to publish homeassistant %s entity auto-discover", uniqueName.c_str());
+            return false;
+        }
+
+        return true;
     }
 
     void publish_homeassistant_auto_discover()
     {
-        // https://www.home-assistant.io/integrations/mqtt/
-        publish_ha_climate_auto_discover();
-        publish_ha_binary_sensor_auto_discover("mode_defrost");
-        publish_ha_binary_sensor_auto_discover("mode_dhw_boost");
+        if (!needsAutoDiscover)
+            return;
 
-        log_web("Published homeassistant auto-discovery topics");
+        bool anyFailed = false;
+
+        // https://www.home-assistant.io/integrations/mqtt/
+        if (!publish_ha_climate_auto_discover())
+            anyFailed = true;
+
+        if (!publish_ha_binary_sensor_auto_discover("mode_defrost"))
+            anyFailed = true;
+
+        if (!publish_ha_binary_sensor_auto_discover("mode_dhw_boost"))
+            anyFailed = true;
+
+        if (!anyFailed)
+        {
+            needsAutoDiscover = false;
+            log_web("Published homeassistant auto-discovery topics");
+        }
     }
 
     void publish_climate_status()
@@ -321,8 +346,6 @@ off
             log_web("Successfully established MQTT client connection!");
         }
 
-        publish_homeassistant_auto_discover();
-
         return true;
     }
 
@@ -364,8 +387,13 @@ off
         {
             if (periodic_update_tick())
             {
-                connect(); // Re-establish MQTT connection if we need to.
-            
+                // Re-establish MQTT connection if we need to.
+                connect();
+
+                // Publish homeassistant auto-discovery messages if we need to.
+                publish_homeassistant_auto_discover();
+
+                // Update all entity statuses.
                 publish_climate_status();
 
                 auto& status = hp::get_status();
