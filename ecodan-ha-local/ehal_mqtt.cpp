@@ -287,12 +287,6 @@ off
             return false;
         }
 
-        if (!mqttClient.subscribe(tempCmdTopic.c_str()))
-        {
-            log_web("Failed to subscribe to temperature command topic!");
-            return false;
-        }
-
         return true;
     }
 
@@ -578,6 +572,13 @@ off
 
         if (mqttClient.connected())
         {
+            String tempCmdTopic = config.MqttTopic + "/" + unique_entity_name("climate_control") + "/temp_cmd";
+            if (!mqttClient.subscribe(tempCmdTopic.c_str()))
+            {
+                log_web("Failed to subscribe to temperature command topic!");
+                return false;
+            }
+
             log_web("Successfully established MQTT client connection!");
         }
 
