@@ -46,12 +46,19 @@ It's strongly recommended to enable this setting in case the device falls back t
 
 *Required*: No
 
-### Time Zone
-This setting contains a timezone value specified in ["TZ" format](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones).
+### Serial Rx Port
+The GPIO pin number which should be used for Serial data receive.
 
-*Default*: `Europe/London`
+*Default*: `33`
 
-*Required*: No
+*Required*: Yes
+
+### Serial Tx Port
+The GPIO pin number which should be used for Serial data transmit.
+
+*Default*: `34`
+
+*Required*: Yes
 
 ### WiFi SSID
 The SSID of the WiFi network which you'd like the device to connect to. When the diagnostics page is loaded, the device will automatically initiate a scan for available WiFi networks and populate the menu when it completes.
