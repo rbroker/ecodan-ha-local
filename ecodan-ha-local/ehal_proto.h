@@ -17,6 +17,23 @@ namespace ehal::hp
         EXT_CONNECT_RES = 0x7B
     };
 
+    enum class SetType : uint8_t
+    {
+        BASIC_SETTINGS = 0x32,
+        DHW_SETTING = 0x34
+    };
+
+#define SET_SETTINGS_FLAG_ZONE_TEMPERATURE 0x80
+#define SET_SETTINGS_FLAG_DHW_TEMPERATURE 0x40
+#define SET_SETTINGS_FLAG_HEATING_MODE 0x08
+
+    enum class SetZone
+    {
+        ZONE_1,
+        ZONE_2,
+        BOTH
+    };    
+
     enum class GetType : uint8_t
     {
         DEFROST_STATE = 0x02,
@@ -33,7 +50,7 @@ namespace ehal::hp
         MODE_FLAGS_B = 0x28,
         ENERGY_USAGE = 0xA1,
         ENERGY_DELIVERY = 0xA2
-    };
+    };    
 
     const uint8_t HEADER_SIZE = 5;
     const uint8_t PAYLOAD_SIZE = 16;
@@ -57,6 +74,15 @@ namespace ehal::hp
         Message(MsgType msgType)
             : cmd_{true}, buffer_{HEADER_MAGIC_A, static_cast<uint8_t>(msgType), HEADER_MAGIC_B, HEADER_MAGIC_C, 0x00}, writeOffset_(HEADER_SIZE)
         {
+        }
+
+        Message(MsgType msgType, SetType setType)
+            : cmd_{true}, buffer_{HEADER_MAGIC_A, static_cast<uint8_t>(msgType), HEADER_MAGIC_B, HEADER_MAGIC_C, 0x00}, writeOffset_(HEADER_SIZE)
+        {
+            // All SET_CMD messages have 15-bytes of zero payload.
+            char payload[PAYLOAD_SIZE] = {};
+            payload[0] = static_cast<uint8_t>(setType);
+            write_payload(payload, sizeof(payload));
         }
 
         Message(MsgType msgType, GetType getType)
@@ -126,9 +152,10 @@ namespace ehal::hp
             return static_cast<MsgType>(buffer_[MSG_TYPE_OFFSET]);
         }
 
-        GetType payload_type() const
+        template<typename T>
+        T payload_type() const
         {
-            return static_cast<GetType>(buffer_[HEADER_SIZE]);
+            return static_cast<T>(buffer_[HEADER_SIZE]);
         }
 
         uint8_t* buffer()
@@ -229,7 +256,15 @@ namespace ehal::hp
             return (value - 40.0f) / 2;
         }
 
-        const uint8_t& operator[](size_t index)
+        void set_float16(float value, size_t index)
+        {
+            uint16_t u16 = uint16_t(value * 100.0f);
+
+            payload()[index] = highByte(u16);
+            payload()[index + 1] = lowByte(u16);
+        }
+
+        uint8_t& operator[](size_t index)
         {
             return payload()[index];
         }

@@ -9,10 +9,10 @@ namespace ehal::hp
     struct Status
     {
         bool Initialized = false;
-        
+
         bool DefrostActive;
         bool DhwBoostActive;
-              
+
         float Zone1SetTemperature;
         float Zone1FlowTemperatureSetPoint;
         float Zone1RoomTemperature;
@@ -29,7 +29,7 @@ namespace ehal::hp
         float DhwTemperature;
         float BoilerFlowTemperature;
         float BoilerReturnTemperature;
-        uint8_t FlowRate;  
+        uint8_t FlowRate;
         float DhwFlowTemperatureSetPoint;
         float RadiatorFlowTemperatureSetPoint;
 
@@ -61,11 +61,11 @@ namespace ehal::hp
         };
 
         // Modes
-        PowerMode Power;   
+        PowerMode Power;
         OperationMode Operation;
         bool HolidayMode;
         bool DhwTimerMode;
-        DhwMode HotWaterMode; 
+        DhwMode HotWaterMode;
         ShMode HeatingMode;
 
         // Efficiency
@@ -89,20 +89,20 @@ namespace ehal::hp
         }
 
         String ha_action_as_string()
-        {            
+        {
             switch (Operation)
             {
                 case OperationMode::SH_ON:
                     [[fallthrough]]
                 case OperationMode::DHW_ON:
                     [[fallthrough]]
-                case OperationMode::FROST_PROTECT:                                
+                case OperationMode::FROST_PROTECT:
                     return F("heating");
 
                 case OperationMode::OFF:
                     [[fallthrough]]
                 default:
-                    return F("idle");       
+                    return F("idle");
             }
         }
 
@@ -182,7 +182,7 @@ namespace ehal::hp
         void set_heating_mode(uint8_t mode)
         {
             HeatingMode = static_cast<ShMode>(mode);
-        }        
+        }
 
         void lock()
         {
@@ -198,9 +198,6 @@ namespace ehal::hp
         std::mutex lock_;
     };
 
-    using OnConnectionEstablishedCallback = void (*)(void);
-    using OnStatusUpdatedCallback = void (*)(void);
-
     String get_device_model();
     Status& get_status();
 
@@ -208,8 +205,11 @@ namespace ehal::hp
     float get_min_thermostat_temperature();
     float get_max_thermostat_temperature();
 
-    bool begin_connect(OnConnectionEstablishedCallback callback);
-    bool begin_update_status(OnStatusUpdatedCallback callback);
+    bool set_z1_target_temperature(float value);
+    bool set_mode(const String& mode);
+
+    bool begin_connect();
+    bool begin_update_status();
 
     bool initialize();
     void handle_loop();

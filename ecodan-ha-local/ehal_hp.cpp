@@ -18,14 +18,12 @@ namespace ehal::hp
     uint64_t rxMsgCount = 0;
     uint64_t txMsgCount = 0;
     std::thread serialRxThread;
-    std::queue<Message> getStatusCmdQueue;
-    std::mutex getStatusCmdQueueMutex;
+    std::queue<Message> cmdQueue;
+    std::mutex cmdQueueMutex;
 
     Status status;
     float temperatureStep = 0.5f;
     bool connected = false;
-    OnConnectionEstablishedCallback onConnectionEstablished = nullptr;
-    OnStatusUpdatedCallback onStatusUpdated = nullptr;
 
     bool serial_tx(Message& msg)
     {
@@ -89,9 +87,9 @@ namespace ehal::hp
         }
 
         // It shouldn't take long to receive the rest of the payload after we get the header.
-        size_t remainingBytes = msg.payload_size() + CHECKSUM_SIZE;        
+        size_t remainingBytes = msg.payload_size() + CHECKSUM_SIZE;
         while (port.available() < remainingBytes)
-        {            
+        {
             delay(1);
         }
 
@@ -115,7 +113,7 @@ namespace ehal::hp
         return true;
     }
 
-    bool begin_connect(OnConnectionEstablishedCallback callback)
+    bool begin_connect()
     {
         Message cmd{MsgType::CONNECT_CMD};
         char payload[2] = {0xCA, 0x01};
@@ -127,32 +125,31 @@ namespace ehal::hp
             return false;
         }
 
-        onConnectionEstablished = callback;
         return true;
     }
 
-    bool dispatch_next_get_status_cmd()
+    bool dispatch_next_cmd()
     {
         Message msg;
         {
-            std::lock_guard<std::mutex> lock{getStatusCmdQueueMutex};
+            std::lock_guard<std::mutex> lock{cmdQueueMutex};
 
-            if (getStatusCmdQueue.empty())
-            {                
+            if (cmdQueue.empty())
+            {
                 return true;
             }
 
-            msg = std::move(getStatusCmdQueue.front());
-            getStatusCmdQueue.pop();
+            msg = std::move(cmdQueue.front());
+            cmdQueue.pop();
         }
 
         if (!serial_tx(msg))
         {
             log_web("Unable to dispatch status update request, flushing queued requests...");
 
-            std::lock_guard<std::mutex> lock{getStatusCmdQueueMutex};
-            while (!getStatusCmdQueue.empty())
-                getStatusCmdQueue.pop();
+            std::lock_guard<std::mutex> lock{cmdQueueMutex};
+            while (!cmdQueue.empty())
+                cmdQueue.pop();
             connected = false;
             return false;
         }
@@ -160,36 +157,34 @@ namespace ehal::hp
         return true;
     }
 
-    bool begin_get_status(OnStatusUpdatedCallback callback)
+    bool begin_get_status()
     {
-        onStatusUpdated = callback;
-
         {
-            std::lock_guard<std::mutex> lock{getStatusCmdQueueMutex};
+            std::lock_guard<std::mutex> lock{cmdQueueMutex};
 
-            if (!getStatusCmdQueue.empty())
+            if (!cmdQueue.empty())
             {
-                log_web("Existing GET STATUS operation is already in progress: %u", getStatusCmdQueue.size());
+                log_web("Existing GET STATUS operation is already in progress: %u", cmdQueue.size());
                 return false;
             }
 
-            getStatusCmdQueue.emplace(MsgType::GET_CMD, GetType::DEFROST_STATE);
-            getStatusCmdQueue.emplace(MsgType::GET_CMD, GetType::COMPRESSOR_FREQUENCY);
-            getStatusCmdQueue.emplace(MsgType::GET_CMD, GetType::FORCED_DHW_STATE);
-            // getStatusCmdQueue.emplace(MsgType::GET_CMD, GetType::HEATING_POWER ); #TODO #FIXME limited utility?
-            getStatusCmdQueue.emplace(MsgType::GET_CMD, GetType::TEMPERATURE_CONFIG);
-            getStatusCmdQueue.emplace(MsgType::GET_CMD, GetType::SH_TEMPERATURE_STATE);
-            getStatusCmdQueue.emplace(MsgType::GET_CMD, GetType::DHW_TEMPERATURE_STATE_A);
-            getStatusCmdQueue.emplace(MsgType::GET_CMD, GetType::DHW_TEMPERATURE_STATE_B);
-            // getStatusCmdQueue.emplace(MsgType::GET_CMD, GetType::ACTIVE_TIME);
-            getStatusCmdQueue.emplace(MsgType::GET_CMD, GetType::FLOW_RATE);
-            getStatusCmdQueue.emplace(MsgType::GET_CMD, GetType::MODE_FLAGS_A);
-            getStatusCmdQueue.emplace(MsgType::GET_CMD, GetType::MODE_FLAGS_B);
-            getStatusCmdQueue.emplace(MsgType::GET_CMD, GetType::ENERGY_USAGE);
-            getStatusCmdQueue.emplace(MsgType::GET_CMD, GetType::ENERGY_DELIVERY);
+            cmdQueue.emplace(MsgType::GET_CMD, GetType::DEFROST_STATE);
+            cmdQueue.emplace(MsgType::GET_CMD, GetType::COMPRESSOR_FREQUENCY);
+            cmdQueue.emplace(MsgType::GET_CMD, GetType::FORCED_DHW_STATE);
+            // cmdQueue.emplace(MsgType::GET_CMD, GetType::HEATING_POWER ); #TODO #FIXME limited utility?
+            cmdQueue.emplace(MsgType::GET_CMD, GetType::TEMPERATURE_CONFIG);
+            cmdQueue.emplace(MsgType::GET_CMD, GetType::SH_TEMPERATURE_STATE);
+            cmdQueue.emplace(MsgType::GET_CMD, GetType::DHW_TEMPERATURE_STATE_A);
+            cmdQueue.emplace(MsgType::GET_CMD, GetType::DHW_TEMPERATURE_STATE_B);
+            // cmdQueue.emplace(MsgType::GET_CMD, GetType::ACTIVE_TIME);
+            cmdQueue.emplace(MsgType::GET_CMD, GetType::FLOW_RATE);
+            cmdQueue.emplace(MsgType::GET_CMD, GetType::MODE_FLAGS_A);
+            cmdQueue.emplace(MsgType::GET_CMD, GetType::MODE_FLAGS_B);
+            cmdQueue.emplace(MsgType::GET_CMD, GetType::ENERGY_USAGE);
+            cmdQueue.emplace(MsgType::GET_CMD, GetType::ENERGY_DELIVERY);
         }
 
-        return dispatch_next_get_status_cmd();
+        return dispatch_next_cmd();
     }
 
     String get_device_model()
@@ -209,7 +204,7 @@ namespace ehal::hp
 
     float get_min_thermostat_temperature()
     {
-        return 8.0f;        
+        return 8.0f;
     }
 
     float get_max_thermostat_temperature()
@@ -217,9 +212,54 @@ namespace ehal::hp
         return 28.0f;
     }
 
+    bool set_z1_target_temperature(float newTemp)
+    {
+        if (newTemp > get_max_thermostat_temperature())
+        {
+            log_web("Thermostat setting exceeds maximum allowed!");
+            return false;
+        }
+
+        if (newTemp < get_min_thermostat_temperature())
+        {
+            log_web("Thermostat setting is lower than minimum allowed!");
+            return false;
+        }
+
+        Message cmd{MsgType::SET_CMD, SetType::BASIC_SETTINGS};
+        cmd[1] = SET_SETTINGS_FLAG_ZONE_TEMPERATURE;
+        cmd[2] = static_cast<uint8_t>(SetZone::ZONE_1);
+        cmd.set_float16(newTemp, 10);
+
+        {
+            std::lock_guard<std::mutex>{cmdQueueMutex};
+            cmdQueue.emplace(std::move(cmd));
+        }
+
+        if (!dispatch_next_cmd())
+        {
+            log_web("command dispatch failed for z1 temperature setting!");
+            return false;
+        }
+
+        // Assume success, next status query will reset us back to correct value if it did fail.
+        std::lock_guard<Status> lock{status};
+        status.Zone1SetTemperature = newTemp;
+
+        return true;
+    }
+
+    bool set_mode(const String& mode)
+    {
+        return true;
+    }
+
     void handle_set_response(Message& res)
     {
-        log_web("Unexpected setting change response!");
+        if (res.type() != MsgType::SET_RES)
+        {
+            log_web("Unexpected set response type: %#x", static_cast<uint8_t>(res.type()));
+        }
     }
 
     void handle_get_response(Message& res)
@@ -227,7 +267,7 @@ namespace ehal::hp
         {
             std::lock_guard<Status> lock{status};
 
-            switch (res.payload_type())
+            switch (res.payload_type<GetType>())
             {
             case GetType::DEFROST_STATE:
                 status.DefrostActive = res[3] != 0;
@@ -290,12 +330,12 @@ namespace ehal::hp
                 status.EnergyDeliveredDhw = res.get_float24(10);
                 break;
             default:
-                log_web("Unknown response type received on serial port: %u", static_cast<uint8_t>(res.payload_type()));
+                log_web("Unknown response type received on serial port: %u", static_cast<uint8_t>(res.payload_type<GetType>()));
                 break;
             }
         }
 
-        if (!dispatch_next_get_status_cmd())
+        if (!dispatch_next_cmd())
         {
             log_web("Failed to dispatch status update command!");
         }
@@ -306,11 +346,6 @@ namespace ehal::hp
         log_web("connection reply received from heat pump");
 
         connected = true;
-
-        if (onConnectionEstablished)
-        {
-            onConnectionEstablished();
-        }
     }
 
     void handle_ext_connect_response(Message& res)
@@ -362,7 +397,7 @@ namespace ehal::hp
 
         serialRxThread = std::thread{serial_rx_thread};
 
-        if (!begin_connect(nullptr))
+        if (!begin_connect())
         {
             log_web("Failed to start heatpump connection proceedure...");
         }
@@ -379,7 +414,7 @@ namespace ehal::hp
             if (now - last_attempt > std::chrono::seconds(10))
             {
                 last_attempt = now;
-                if (!begin_connect(nullptr))
+                if (!begin_connect())
                 {
                     log_web("Failed to start heatpump connection proceedure...");
                 }
@@ -395,7 +430,7 @@ namespace ehal::hp
             if (now - last_update > std::chrono::seconds(60))
             {
                 last_update = now;
-                if (!begin_get_status(nullptr))
+                if (!begin_get_status())
                 {
                     log_web("Failed to begin heatpump status update!");
                 }
