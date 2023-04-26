@@ -1,9 +1,7 @@
 # ecodan-ha-local
-ESP32 compatible program for local monitoring of Mitsubishi Ecodan Air to Water heat pumps.
+ESP32 compatible program for local monitoring of Mitsubishi Ecodan Air to Water heat pumps with automatic discovery in HomeAssistant.
 
-Uses the CN105 connector on the Cased Flow Temp Controller (FTC6 in my setup) to control + monitor the heat pump.
-
-There are a number of existing solutions for connecting to Mitsubish heat pump models via the CN105 connector, though I couldn't find any which were tailored towards air-to-water heat pumps rather than the more common air-to-air versions.
+Uses the CN105 connector on the Cased Flow Temp Controller (FTC6 in my setup) to do very basic control (temperature set point only) + retrieve basic sensor information from the heat pump.
 
 <p float="left">
   <img src="img/config_page.png" height="640" />
@@ -14,6 +12,7 @@ There are a number of existing solutions for connecting to Mitsubish heat pump m
 
 ## Hardware Dependencies
 - ESP32-compatible development board (I'm using a generic ESP32S2 Dev Module)
+  - Will almost certainl exceed the memory budgets on an ESP8266.
 - CN105 female connector + pigtails, as described [here](https://github.com/SwiCago/HeatPump#Demo-Circuit).
 
 ## Library Dependencies
@@ -59,6 +58,13 @@ The GPIO pin number which should be used for Serial data transmit.
 *Default*: `34`
 
 *Required*: Yes
+
+### Dump Serial Packets
+Dump packets sent to/received from the heat pump to the diagnostic log window on the Diagnostics page.
+
+*Default*: `Off`
+
+*Required*: No
 
 ### WiFi SSID
 The SSID of the WiFi network which you'd like the device to connect to. When the diagnostics page is loaded, the device will automatically initiate a scan for available WiFi networks and populate the menu when it completes.
@@ -120,5 +126,9 @@ The topic value which the server should use to filter messages related to this h
 
 *Required*: Yes
 
-
+## See Also
+There are a number of existing solutions for connecting to Mitsubish heat pump models via the CN105 connector, I wouldn't have been able to put this together without work already done here:
+- https://github.com/m000c400/Mitsubishi-CN105-Protocol-Decode
+- https://github.com/BartGijsbers/CN105Gateway
+- https://github.com/gysmo38/mitsubishi2MQTT
 
