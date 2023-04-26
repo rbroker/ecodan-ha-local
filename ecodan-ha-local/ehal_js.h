@@ -163,6 +163,6 @@ namespace ehal
     window.setInterval(update_diagnostic_logs, 5000);
     window.addEventListener('load', update_diagnostic_logs);)";
 
-    const char* SCRIPT_REDIRECT = R"(window.location = '{{uri}}';
+    const char* SCRIPT_REDIRECT PROGMEM = R"(window.location = '{{uri}}';
     )";
 } // namespace ehal

@@ -25,7 +25,7 @@ namespace ehal
         // Include timestamp in diagnostic log message.
         time_t now = time(nullptr);
         struct tm t = *localtime(&now);
-        strftime(buffer, sizeof(buffer), "[%T] ", &t);
+        strftime(buffer, sizeof(buffer), F("[%T] "), &t);
         const size_t offset = 11; // "[14:55:02] "
 
         // Format remainder of log message into buffer.
@@ -57,7 +57,7 @@ namespace ehal
             // Include timestamp in diagnostic log message.
             time_t now = time(nullptr);
             struct tm t = *localtime(&now);
-            strftime(buffer, sizeof(buffer), "[%T] ", &t);
+            strftime(buffer, sizeof(buffer), F("[%T] "), &t);
             const size_t offset = 11; // "[14:55:02] "
 
             // Format remainder of log message into buffer.
@@ -77,7 +77,7 @@ namespace ehal
     String logs_as_json()
     {
         DynamicJsonDocument json((MAX_MESSAGE_LENGTH * MAX_NUM_ELEMENTS) + 1024);
-        JsonArray msg = json.createNestedArray("messages");
+        JsonArray msg = json.createNestedArray(F("messages"));
 
         {
             std::lock_guard<std::mutex> lock(diagnosticRingbufferLock);

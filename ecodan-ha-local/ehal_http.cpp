@@ -74,7 +74,7 @@ namespace ehal::http
         char hex[3] = {};
         for (int i = 0; i < sizeof(sha256); ++i)
         {
-            snprintf(hex, sizeof(hex), "%02x", sha256[i]);
+            snprintf(hex, sizeof(hex), F("%02x"), sha256[i]);
             cookie += hex;
         }
 
@@ -97,8 +97,8 @@ namespace ehal::http
 
         if (!loginCookie.isEmpty())
         {
-            String clientCookie = server.header("Cookie");
-            if (clientCookie.indexOf(String("login-cookie=") + loginCookie) != -1)
+            String clientCookie = server.header(F("Cookie"));
+            if (clientCookie.indexOf(FPSTR("login-cookie=") + loginCookie) != -1)
             {
                 return false;
             }
@@ -160,8 +160,7 @@ namespace ehal::http
             page.replace(F("{{dump_pkt}}"), F("checked"));
         else
             page.replace(F("{{dump_pkt}}"), "");
-
-        page.replace(F("{{dump_pkt}}"), config.DumpPackets ? "true" : "false");
+        
         page.replace(F("{{wifi_ssid}}"), config.WifiSsid);
         page.replace(F("{{wifi_pw}}"), config.WifiPassword);
         page.replace(F("{{hostname}}"), config.HostName);
@@ -187,23 +186,23 @@ namespace ehal::http
     void handle_save_configuration()
     {
         Config config;
-        config.DevicePassword = server.arg("device_pw");
-        config.SerialRxPort = server.arg("serial_rx").toInt();
-        config.SerialTxPort = server.arg("serial_tx").toInt();
+        config.DevicePassword = server.arg(F("device_pw"));
+        config.SerialRxPort = server.arg(F("serial_rx")).toInt();
+        config.SerialTxPort = server.arg(F("serial_tx")).toInt();
 
-        if (server.hasArg("dump_pkt"))
+        if (server.hasArg(F("dump_pkt")))
             config.DumpPackets = true;
         else        
             config.DumpPackets = false;        
 
-        config.WifiSsid = server.arg("wifi_ssid");
-        config.WifiPassword = server.arg("wifi_pw");
-        config.HostName = server.arg("hostname");
-        config.MqttServer = server.arg("mqtt_server");
-        config.MqttPort = server.arg("mqtt_port").toInt();
-        config.MqttUserName = server.arg("mqtt_user");
-        config.MqttPassword = server.arg("mqtt_pw");
-        config.MqttTopic = server.arg("mqtt_topic");
+        config.WifiSsid = server.arg(F("wifi_ssid"));
+        config.WifiPassword = server.arg(F("wifi_pw"));
+        config.HostName = server.arg(F("hostname"));
+        config.MqttServer = server.arg(F("mqtt_server"));
+        config.MqttPort = server.arg(F("mqtt_port")).toInt();
+        config.MqttUserName = server.arg(F("mqtt_user"));
+        config.MqttPassword = server.arg(F("mqtt_pw"));
+        config.MqttTopic = server.arg(F("mqtt_topic"));
         save_configuration(config);
 
         String page{F(PAGE_TEMPLATE)};
@@ -228,7 +227,7 @@ namespace ehal::http
         String page{F(PAGE_TEMPLATE)};
         page.replace(F("{{PAGE_SCRIPT}}"), F("defer src='/reboot.js'"));
         page.replace(F("{{PAGE_BODY}}"), F(BODY_TEMPLATE_CONFIG_CLEARED));
-        server.sendHeader("Connection", "close");
+        server.sendHeader(F("Connection"), F("close"));
         server.send(200, F("text/html"), page);
 
         async_restart();
@@ -237,16 +236,16 @@ namespace ehal::http
     void handle_query_ssid_list()
     {
         DynamicJsonDocument json(1024);
-        JsonArray ssids = json.createNestedArray("ssids");
+        JsonArray ssids = json.createNestedArray(F("ssids"));
         String jsonOut;
 
-        log_web("Starting WiFi scan...");
+        log_web(F("Starting WiFi scan..."));
         int count = WiFi.scanNetworks();
-        log_web("Wifi Scan Result: %s", String(count).c_str());
+        log_web(F("Wifi Scan Result: %s"), String(count).c_str());
 
         for (int i = 0; i < count; ++i)
         {
-            log_web("SSID: %s", WiFi.SSID(i).c_str());
+            log_web(F("SSID: %s"), WiFi.SSID(i).c_str());
             ssids.add(WiFi.SSID(i));
         }
 
@@ -277,7 +276,7 @@ namespace ehal::http
         page.replace(F("{{PAGE_BODY}}"), F(BODY_TEMPLATE_DIAGNOSTICS));
 
         char deviceMac[19] = {};
-        snprintf(deviceMac, sizeof(deviceMac), "%#llx", ESP.getEfuseMac());
+        snprintf(deviceMac, sizeof(deviceMac), F("%#llx"), ESP.getEfuseMac());
 
         page.replace(F("{{sw_ver}}"), get_software_version());
         page.replace(F("{{device_mac}}"), deviceMac);
@@ -306,7 +305,7 @@ namespace ehal::http
 
     void handle_diagnostic_js()
     {
-        String js{FPSTR(SCRIPT_UPDATE_DIAGNOSTIC_LOGS)};
+        String js{F(SCRIPT_UPDATE_DIAGNOSTIC_LOGS)};
         server.send(200, F("text/javascript"), js);
     }
 
@@ -315,7 +314,7 @@ namespace ehal::http
         if (show_login_if_required())
             return;
 
-        String page{FPSTR(PAGE_TEMPLATE)};
+        String page{F(PAGE_TEMPLATE)};
         page.replace(F("{{PAGE_SCRIPT}}"), "");
         page.replace(F("{{PAGE_BODY}}"), F(BODY_TEMPLATE_HEAT_PUMP));
 
@@ -351,11 +350,11 @@ namespace ehal::http
 
     void handle_firmware_update()
     {
-        String page{FPSTR(PAGE_TEMPLATE)};
+        String page{F(PAGE_TEMPLATE)};
         page.replace(F("{{PAGE_SCRIPT}}"), F("defer src='/reboot.js'"));
-        page.replace(F("{{PAGE_BODY}}"), FPSTR(BODY_TEMPLATE_FIRMWARE_UPDATE));
+        page.replace(F("{{PAGE_BODY}}"), F(BODY_TEMPLATE_FIRMWARE_UPDATE));
 
-        server.sendHeader("Connection", "close");
+        server.sendHeader(F("Connection"), F("close"));
         server.send(200, F("text/html"), page);
 
         async_restart();
@@ -370,7 +369,7 @@ namespace ehal::http
         {
             if (!Update.begin(UPDATE_SIZE_UNKNOWN))
             {
-                log_web("Failed to start firmware update: %s", Update.errorString());
+                log_web(F("Failed to start firmware update: %s"), Update.errorString());
             }
         }
         break;
@@ -379,7 +378,7 @@ namespace ehal::http
         {
             if (Update.write(upload.buf, upload.currentSize) != upload.currentSize)
             {
-                log_web("Failed to write firmware chunk: %s", Update.errorString());
+                log_web(F("Failed to write firmware chunk: %s"), Update.errorString());
             }
         }
         break;
@@ -388,14 +387,14 @@ namespace ehal::http
         {
             if (!Update.end(true))
             {
-                log_web("Failed to finalize firmware write: %s", Update.errorString());
+                log_web(F("Failed to finalize firmware write: %s"), Update.errorString());
             }
         }
         break;
 
         case UPLOAD_FILE_ABORTED:
         {
-            log_web("Firmware update process aborted!");
+            log_web(F("Firmware update process aborted!"));
         }
         break;
         }
@@ -403,38 +402,38 @@ namespace ehal::http
 
     void handle_redirect(const char* uri)
     {
-        String page{FPSTR(PAGE_TEMPLATE)};
+        String page{F(PAGE_TEMPLATE)};
         page.replace(F("{{PAGE_SCRIPT}}"), F("src='/redirect.js'"));
-        page.replace(F("{{PAGE_BODY}}"), FPSTR(BODY_TEMPLATE_REDIRECT));
+        page.replace(F("{{PAGE_BODY}}"), F(BODY_TEMPLATE_REDIRECT));
         page.replace(F("{{uri}}"), uri);
         server.send(200, F("text/html"), page);
     }
 
     void handle_redirect_js()
     {
-        String js{FPSTR(SCRIPT_REDIRECT)};
+        String js{F(SCRIPT_REDIRECT)};
         server.send(200, F("text/javascript"), js);
     }
 
     void handle_verify_login()
     {
-        if (server.arg("device_pw") == config_instance().DevicePassword)
+        if (server.arg(F("device_pw")) == config_instance().DevicePassword)
         {
             if (loginCookie.isEmpty())
             {
                 loginCookie = generate_login_cookie();
             }
 
-            log_web("Successful device login, authorising client.");
+            log_web(F("Successful device login, authorising client."));
 
-            server.sendHeader("Set-Cookie", String("login-cookie=") + loginCookie);
+            server.sendHeader(F("Set-Cookie"), FPSTR("login-cookie=") + loginCookie);
 
             // Reset brute-force mitigation count, to avoid upsetting legitimate users.
             failedLoginCount = 0;
         }
         else
         {
-            log_web("Device password mismatch! Login attempted with '%s'", server.arg("device_pw").c_str());
+            log_web(F("Device password mismatch! Login attempted with '%s'"), server.arg(F("device_pw")).c_str());
 
             // Mitigate password brute-force.
             if (++failedLoginCount > 5)
@@ -449,40 +448,40 @@ namespace ehal::http
 
     void handle_milligram_css()
     {
-        server.send(200, "text/css", FPSTR(ehal::PAGE_CSS));
+        server.send(200, F("text/css"), F(PAGE_CSS));
     }
 
     void do_common_initialization()
     {
         // Common pages
-        server.on("/diagnostics", handle_diagnostics);
-        server.on("/configuration", handle_configure);
-        server.on("/heat_pump", handle_heat_pump);
+        server.on(F("/diagnostics"), handle_diagnostics);
+        server.on(F("/configuration"), handle_configure);
+        server.on(F("/heat_pump"), handle_heat_pump);
 
         // Forms / magic URIs for buttons.
-        server.on("/verify_login", handle_verify_login);
-        server.on("/save", handle_save_configuration);
-        server.on("/clear_config", handle_clear_config);
-        server.on("/update", HTTP_POST, handle_firmware_update, handle_firmware_update_handler);
+        server.on(F("/verify_login"), handle_verify_login);
+        server.on(F("/save"), handle_save_configuration);
+        server.on(F("/clear_config"), handle_clear_config);
+        server.on(F("/update"), HTTP_POST, handle_firmware_update, handle_firmware_update_handler);
 
         // XMLHTTPRequest / Javascript / CSS
-        server.on("/query_ssid", handle_query_ssid_list);
-        server.on("/query_life", handle_query_life);
-        server.on("/query_diagnostic_logs", handle_query_diagnostic_logs);
-        server.on("/configuration.js", handle_configuration_js);
-        server.on("/reboot.js", handle_reboot_js);
-        server.on("/diagnostic.js", handle_diagnostic_js);
-        server.on("/redirect.js", handle_redirect_js);
-        server.on("/milligram.css", handle_milligram_css);
+        server.on(F("/query_ssid"), handle_query_ssid_list);
+        server.on(F("/query_life"), handle_query_life);
+        server.on(F("/query_diagnostic_logs"), handle_query_diagnostic_logs);
+        server.on(F("/configuration.js"), handle_configuration_js);
+        server.on(F("/reboot.js"), handle_reboot_js);
+        server.on(F("/diagnostic.js"), handle_diagnostic_js);
+        server.on(F("/redirect.js"), handle_redirect_js);
+        server.on(F("/milligram.css"), handle_milligram_css);
 
-        const char* headers[] = {"Cookie"};
+        const char* headers[] = {F("Cookie")};
         server.collectHeaders(headers, sizeof(headers) / sizeof(char*));
         server.begin();
     }
 
     bool initialize_default()
     {
-        ehal::log_web("Regular startup mode, initializing web-server...");
+        ehal::log_web(F("Regular startup mode, initializing web-server..."));
 
         server.on("/", handle_root);
         server.onNotFound(handle_root);
@@ -495,17 +494,17 @@ namespace ehal::http
         dnsServer.reset(new DNSServer());
         if (!dnsServer)
         {
-            log_web("Failed to allocate DNS server!");
+            log_web(F("Failed to allocate DNS server!"));
             return false;
         }
 
         if (!dnsServer->start(/*port =*/53, "*", WiFi.softAPIP()))
         {
-            log_web("Failed to start DNS server!");
+            log_web(F("Failed to start DNS server!"));
             return false;
         }
 
-        log_web("Initialized DNS server for captive portal.");
+        log_web(F("Initialized DNS server for captive portal."));
 
         server.on("/", handle_configure);
         server.onNotFound(handle_configure);

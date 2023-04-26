@@ -27,13 +27,13 @@ namespace ehal::hp
     {
         if (!port)
         {
-            log_web_ratelimit("Serial connection unavailable for tx");
+            log_web_ratelimit(F("Serial connection unavailable for tx"));
             return false;
         }
 
         if (port.availableForWrite() < msg.size())
         {
-            log_web("Serial tx buffer size: %u", port.availableForWrite());
+            log_web(F("Serial tx buffer size: %u"), port.availableForWrite());
             return false;
         }
 
@@ -54,7 +54,7 @@ namespace ehal::hp
     {
         if (!port)
         {
-            log_web_ratelimit("Serial connection unavailable for rx");
+            log_web_ratelimit(F("Serial connection unavailable for rx"));
             return false;
         }
 
@@ -66,14 +66,14 @@ namespace ehal::hp
         // Scan for the start of an Ecodan packet.
         if (port.peek() != HEADER_MAGIC_A)
         {
-            log_web_ratelimit("Dropping serial data, header magic mismatch");
+            log_web_ratelimit(F("Dropping serial data, header magic mismatch"));
             port.read();
             return false;
         }
 
         if (port.readBytes(msg.buffer(), HEADER_SIZE) < HEADER_SIZE)
         {
-            log_web("Serial port header read failure!");
+            log_web(F("Serial port header read failure!"));
             return false;
         }
 
@@ -81,7 +81,7 @@ namespace ehal::hp
 
         if (!msg.verify_header())
         {
-            log_web("Serial port message appears invalid, skipping payload wait...");
+            log_web(F("Serial port message appears invalid, skipping payload wait..."));
             return false;
         }
 
@@ -94,7 +94,7 @@ namespace ehal::hp
 
         if (port.readBytes(msg.payload(), remainingBytes) < remainingBytes)
         {
-            log_web("Serial port payload read failure!");
+            log_web(F("Serial port payload read failure!"));
             return false;
         }
 
@@ -121,7 +121,7 @@ namespace ehal::hp
 
         if (!serial_tx(cmd))
         {
-            log_web("Failed to tx CONNECT_CMD!");
+            log_web(F("Failed to tx CONNECT_CMD!"));
             return false;
         }
 
@@ -145,7 +145,7 @@ namespace ehal::hp
 
         if (!serial_tx(msg))
         {
-            log_web("Unable to dispatch status update request, flushing queued requests...");
+            log_web(F("Unable to dispatch status update request, flushing queued requests..."));
 
             std::lock_guard<std::mutex> lock{cmdQueueMutex};
             while (!cmdQueue.empty())
@@ -164,7 +164,7 @@ namespace ehal::hp
 
             if (!cmdQueue.empty())
             {
-                log_web("Existing GET STATUS operation is already in progress: %u", cmdQueue.size());
+                log_web(F("Existing GET STATUS operation is already in progress: %u"), cmdQueue.size());
                 return false;
             }
 
@@ -216,13 +216,13 @@ namespace ehal::hp
     {
         if (newTemp > get_max_thermostat_temperature())
         {
-            log_web("Thermostat setting exceeds maximum allowed!");
+            log_web(F("Thermostat setting exceeds maximum allowed!"));
             return false;
         }
 
         if (newTemp < get_min_thermostat_temperature())
         {
-            log_web("Thermostat setting is lower than minimum allowed!");
+            log_web(F("Thermostat setting is lower than minimum allowed!"));
             return false;
         }
 
@@ -238,7 +238,7 @@ namespace ehal::hp
 
         if (!dispatch_next_cmd())
         {
-            log_web("command dispatch failed for z1 temperature setting!");
+            log_web(F("command dispatch failed for z1 temperature setting!"));
             return false;
         }
 
@@ -258,7 +258,7 @@ namespace ehal::hp
     {
         if (res.type() != MsgType::SET_RES)
         {
-            log_web("Unexpected set response type: %#x", static_cast<uint8_t>(res.type()));
+            log_web(F("Unexpected set response type: %#x"), static_cast<uint8_t>(res.type()));
         }
     }
 
@@ -330,27 +330,27 @@ namespace ehal::hp
                 status.EnergyDeliveredDhw = res.get_float24(10);
                 break;
             default:
-                log_web("Unknown response type received on serial port: %u", static_cast<uint8_t>(res.payload_type<GetType>()));
+                log_web(F("Unknown response type received on serial port: %u"), static_cast<uint8_t>(res.payload_type<GetType>()));
                 break;
             }
         }
 
         if (!dispatch_next_cmd())
         {
-            log_web("Failed to dispatch status update command!");
+            log_web(F("Failed to dispatch status update command!"));
         }
     }
 
     void handle_connect_response(Message& res)
     {
-        log_web("connection reply received from heat pump");
+        log_web(F("connection reply received from heat pump"));
 
         connected = true;
     }
 
     void handle_ext_connect_response(Message& res)
     {
-        log_web("Unexpected extended connection response!");
+        log_web(F("Unexpected extended connection response!"));
     }
 
     void serial_rx_thread()
@@ -379,7 +379,7 @@ namespace ehal::hp
                 handle_ext_connect_response(res);
                 break;
             default:
-                log_web("Unknown serial message type received: %#x", static_cast<uint8_t>(res.type()));
+                log_web(F("Unknown serial message type received: %#x"), static_cast<uint8_t>(res.type()));
                 break;
             }
         }
@@ -389,7 +389,7 @@ namespace ehal::hp
     {
         auto& config = config_instance();
 
-        log_web("Initializing HeatPump with serial rx: %d, tx: %d", (int8_t)config.SerialRxPort, (int8_t)config.SerialTxPort);
+        log_web(F("Initializing HeatPump with serial rx: %d, tx: %d"), (int8_t)config.SerialRxPort, (int8_t)config.SerialTxPort);
 
         // port.begin(2400, SERIAL_8E1, config.SerialRxPort, config.SerialTxPort);
         port.begin(2400, SERIAL_8N1, config.SerialRxPort, config.SerialTxPort);
@@ -399,7 +399,7 @@ namespace ehal::hp
 
         if (!begin_connect())
         {
-            log_web("Failed to start heatpump connection proceedure...");
+            log_web(F("Failed to start heatpump connection proceedure..."));
         }
 
         return true;
@@ -416,7 +416,7 @@ namespace ehal::hp
                 last_attempt = now;
                 if (!begin_connect())
                 {
-                    log_web("Failed to start heatpump connection proceedure...");
+                    log_web(F("Failed to start heatpump connection proceedure..."));
                 }
             }
 
@@ -432,7 +432,7 @@ namespace ehal::hp
                 last_update = now;
                 if (!begin_get_status())
                 {
-                    log_web("Failed to begin heatpump status update!");
+                    log_web(F("Failed to begin heatpump status update!"));
                 }
             }
         }
