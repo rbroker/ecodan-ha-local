@@ -12,7 +12,7 @@ Uses the CN105 connector on the Cased Flow Temp Controller (FTC6 in my setup) to
 
 ## Hardware Dependencies
 - ESP32-compatible development board (I'm using a generic ESP32S2 Dev Module)
-  - Will almost certainl exceed the memory budgets on an ESP8266.
+  - Will almost certainly exceed the memory budgets on an ESP8266.
 - CN105 female connector + pigtails, as described [here](https://github.com/SwiCago/HeatPump#Demo-Circuit).
 
 ## Library Dependencies
