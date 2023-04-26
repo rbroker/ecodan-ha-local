@@ -10,6 +10,7 @@ namespace ehal
         String DevicePassword;
         uint16_t SerialRxPort;
         uint16_t SerialTxPort;        
+        bool DumpPackets;
         String WifiSsid;
         String WifiPassword;
         String HostName;

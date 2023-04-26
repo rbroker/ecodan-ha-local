@@ -61,6 +61,10 @@ namespace ehal
         <label class="column column-25" for="device_tx">Serial Tx Port:</label>
         <input class="column column-75" type="text" inputmode="numeric" id="serial_tx" name="serial_tx" value="{{serial_tx}}" required />
     </div>
+    <div class="row">
+        <label class="column column-25" for="dump_pkt">Dump Serial Packets:</label>
+        <input class="column column-75" type="checkbox" id="dump_pkt" name="dump_pkt" {{dump_pkt}} />
+    </div>
     <br />
     <h2>WiFi Configuration:</h2>
     <div class="row">

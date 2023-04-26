@@ -13,8 +13,6 @@
 namespace ehal::hp
 {
     HardwareSerial port = Serial1;
-
-    bool debugDumpPackets = false;
     uint64_t rxMsgCount = 0;
     uint64_t txMsgCount = 0;
     std::thread serialRxThread;
@@ -42,7 +40,8 @@ namespace ehal::hp
         msg.set_checksum();
         port.write(msg.buffer(), msg.size());
 
-        if (debugDumpPackets)
+        auto& config = config_instance();
+        if (config.DumpPackets)
         {
             msg.debug_dump_packet();
         }
@@ -104,7 +103,8 @@ namespace ehal::hp
         if (!msg.verify_checksum())
             return false;
 
-        if (debugDumpPackets)
+        auto& config = config_instance();
+        if (config.DumpPackets)
         {
             msg.debug_dump_packet();
         }

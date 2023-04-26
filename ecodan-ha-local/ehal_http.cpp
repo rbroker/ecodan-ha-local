@@ -85,13 +85,13 @@ namespace ehal::http
     {
         if (requires_first_time_configuration())
         {
-            log_web("Skipping login, as first time configuration is required");
+            log_web(F("Skipping login, as first time configuration is required"));
             return false;
         }
 
         if (config_instance().DevicePassword.isEmpty())
         {
-            log_web("Skipping login, as device password is unset.");
+            log_web(F("Skipping login, as device password is unset."));
             return false;
         }
 
@@ -103,11 +103,11 @@ namespace ehal::http
                 return false;
             }
 
-            log_web("Client cookie mismatch, redirecting to login page");
+            log_web(F("Client cookie mismatch, redirecting to login page"));
         }
         else
         {
-            log_web("Login cookie is unset, redirecting to login page");
+            log_web(F("Login cookie is unset, redirecting to login page"));
         }
 
         String page{FPSTR(PAGE_TEMPLATE)};
@@ -122,7 +122,7 @@ namespace ehal::http
         std::thread asyncRestart([]()
         {
             std::this_thread::sleep_for(std::chrono::seconds(1));
-            ESP.restart(); 
+            ESP.restart();
         });
 
         asyncRestart.detach();
@@ -133,9 +133,9 @@ namespace ehal::http
         if (show_login_if_required())
             return;
 
-        String page{FPSTR(PAGE_TEMPLATE)};
+        String page{F(PAGE_TEMPLATE)};
         page.replace(F("{{PAGE_SCRIPT}}"), "");
-        page.replace(F("{{PAGE_BODY}}"), FPSTR(BODY_TEMPLATE_HOME));
+        page.replace(F("{{PAGE_BODY}}"), F(BODY_TEMPLATE_HOME));
         page.replace(F("{{hp_conn}}"), bool_to_emoji(hp::is_connected()));
         page.replace(F("{{mqtt_conn}}"), bool_to_emoji(mqtt::is_connected()));
         page.replace(F("{{config}}"), configuration_status());
@@ -147,14 +147,21 @@ namespace ehal::http
         if (show_login_if_required())
             return;
 
-        String page{FPSTR(PAGE_TEMPLATE)};
+        String page{F(PAGE_TEMPLATE)};
         page.replace(F("{{PAGE_SCRIPT}}"), F("src='/configuration.js'"));
-        page.replace(F("{{PAGE_BODY}}"), FPSTR(BODY_TEMPLATE_CONFIG));
+        page.replace(F("{{PAGE_BODY}}"), F(BODY_TEMPLATE_CONFIG));
 
         Config& config = config_instance();
         page.replace(F("{{device_pw}}"), config.DevicePassword);
         page.replace(F("{{serial_rx}}"), String(config.SerialRxPort));
         page.replace(F("{{serial_tx}}"), String(config.SerialTxPort));
+
+        if (config.DumpPackets)
+            page.replace(F("{{dump_pkt}}"), F("checked"));
+        else
+            page.replace(F("{{dump_pkt}}"), "");
+
+        page.replace(F("{{dump_pkt}}"), config.DumpPackets ? "true" : "false");
         page.replace(F("{{wifi_ssid}}"), config.WifiSsid);
         page.replace(F("{{wifi_pw}}"), config.WifiPassword);
         page.replace(F("{{hostname}}"), config.HostName);
@@ -169,7 +176,7 @@ namespace ehal::http
 
     void handle_configuration_js()
     {
-        String js{FPSTR(SCRIPT_CONFIGURATION_PAGE)};
+        String js{F(SCRIPT_CONFIGURATION_PAGE)};
 
         Config& config = config_instance();
         js.replace(F("{{wifi_ssid}}"), config.WifiSsid);
@@ -183,6 +190,12 @@ namespace ehal::http
         config.DevicePassword = server.arg("device_pw");
         config.SerialRxPort = server.arg("serial_rx").toInt();
         config.SerialTxPort = server.arg("serial_tx").toInt();
+
+        if (server.hasArg("dump_pkt"))
+            config.DumpPackets = true;
+        else        
+            config.DumpPackets = false;        
+
         config.WifiSsid = server.arg("wifi_ssid");
         config.WifiPassword = server.arg("wifi_pw");
         config.HostName = server.arg("hostname");
@@ -193,9 +206,9 @@ namespace ehal::http
         config.MqttTopic = server.arg("mqtt_topic");
         save_configuration(config);
 
-        String page{FPSTR(PAGE_TEMPLATE)};
+        String page{F(PAGE_TEMPLATE)};
         page.replace(F("{{PAGE_SCRIPT}}"), F("defer src='/reboot.js'"));
-        page.replace(F("{{PAGE_BODY}}"), FPSTR(BODY_TEMPLATE_CONFIG_SAVED));
+        page.replace(F("{{PAGE_BODY}}"), F(BODY_TEMPLATE_CONFIG_SAVED));
         server.sendHeader("Connection", "close");
         server.send(200, F("text/html"), page);
 
@@ -204,7 +217,7 @@ namespace ehal::http
 
     void handle_reboot_js()
     {
-        String js{FPSTR(SCRIPT_WAIT_REBOOT)};
+        String js{F(SCRIPT_WAIT_REBOOT)};
         server.send(200, F("text/javascript"), js);
     }
 
@@ -212,9 +225,9 @@ namespace ehal::http
     {
         clear_configuration();
 
-        String page{FPSTR(PAGE_TEMPLATE)};
+        String page{F(PAGE_TEMPLATE)};
         page.replace(F("{{PAGE_SCRIPT}}"), F("defer src='/reboot.js'"));
-        page.replace(F("{{PAGE_BODY}}"), FPSTR(BODY_TEMPLATE_CONFIG_CLEARED));
+        page.replace(F("{{PAGE_BODY}}"), F(BODY_TEMPLATE_CONFIG_CLEARED));
         server.sendHeader("Connection", "close");
         server.send(200, F("text/html"), page);
 
@@ -261,7 +274,7 @@ namespace ehal::http
 
         String page{FPSTR(PAGE_TEMPLATE)};
         page.replace(F("{{PAGE_SCRIPT}}"), F("src='/diagnostic.js'"));
-        page.replace(F("{{PAGE_BODY}}"), FPSTR(BODY_TEMPLATE_DIAGNOSTICS));
+        page.replace(F("{{PAGE_BODY}}"), F(BODY_TEMPLATE_DIAGNOSTICS));
 
         char deviceMac[19] = {};
         snprintf(deviceMac, sizeof(deviceMac), "%#llx", ESP.getEfuseMac());
@@ -283,7 +296,7 @@ namespace ehal::http
         page.replace(F("{{wifi_mac}}"), WiFi.macAddress());
         page.replace(F("{{wifi_tx_power}}"), String(WiFi.getTxPower()));
 
-        page.replace(F("{{ha_hp_entity}}"), FPSTR("climate.") + ehal::mqtt::unique_entity_name("climate_control"));
+        page.replace(F("{{ha_hp_entity}}"), FPSTR("climate.") + ehal::mqtt::unique_entity_name(F("climate_control")));
 
         page.replace(F("{{hp_tx_count}}"), uint64_to_string(hp::get_tx_msg_count()));
         page.replace(F("{{hp_rx_count}}"), uint64_to_string(hp::get_rx_msg_count()));
@@ -304,7 +317,7 @@ namespace ehal::http
 
         String page{FPSTR(PAGE_TEMPLATE)};
         page.replace(F("{{PAGE_SCRIPT}}"), "");
-        page.replace(F("{{PAGE_BODY}}"), FPSTR(BODY_TEMPLATE_HEAT_PUMP));
+        page.replace(F("{{PAGE_BODY}}"), F(BODY_TEMPLATE_HEAT_PUMP));
 
         {
             auto& status = hp::get_status();
