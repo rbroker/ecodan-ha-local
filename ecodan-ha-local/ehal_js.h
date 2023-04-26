@@ -144,13 +144,17 @@ namespace ehal
         xhttp.onload = function() {
             let element = document.getElementById('logs');
             if (this.status == 200) {
+                let didLogsChange = false;
                 let jsonResponse = JSON.parse(this.responseText);
                 for (let i = 0; i < jsonResponse.messages.length; ++i) {
                     if (element.textContent.indexOf(jsonResponse.messages[i]) == -1) {
                         element.textContent += jsonResponse.messages[i] + '\n';
+                        didLogsChange = true;
                     }
                 }
-                element.scrollTop = element.scrollHeight;
+                if (didLogsChange) {
+                    element.scrollTop = element.scrollHeight;
+                }
             }
         }
         xhttp.send();
