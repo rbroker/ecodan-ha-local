@@ -119,7 +119,7 @@ namespace ehal::hp
             if (!valid_)
                 return;
 
-            log_web("%s { .Hdr { %x, %x, %x, %x, %x } .Payload { %x, %x, %x, %x, %x, %x, %x, %x, %x, %x, %x, %x, %x, %x, %x, %x } .Chk { %x } }",
+            log_web(F("%s { .Hdr { %x, %x, %x, %x, %x } .Payload { %x, %x, %x, %x, %x, %x, %x, %x, %x, %x, %x, %x, %x, %x, %x, %x } .Chk { %x } }"),
                     cmd_ ? "CMD" : "RES",
                     buffer_[0], buffer_[1], buffer_[2], buffer_[3], buffer_[4],
                     buffer_[5], buffer_[6], buffer_[7], buffer_[8], buffer_[9],
@@ -227,7 +227,7 @@ namespace ehal::hp
             if (v == buffer_[writeOffset_])
                 return true;
 
-            log_web("Serial message rx checksum failed: %u != %u", v, buffer_[writeOffset_]);
+            log_web(F("Serial message rx checksum failed: %u != %u"), v, buffer_[writeOffset_]);
             return false;
         }
 

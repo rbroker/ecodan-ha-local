@@ -20,7 +20,7 @@ bool heatpumpInitialized = false;
 
 bool initialize_wifi_access_point()
 {
-    ehal::log_web("Initializing WiFi connection...");
+    ehal::log_web(F("Initializing WiFi connection..."));
 
     ehal::Config& config = ehal::config_instance();
 
@@ -30,7 +30,7 @@ bool initialize_wifi_access_point()
         {
             if (!WiFi.setHostname(config.HostName.c_str()))
             {
-                ehal::log_web("Failed to configure hostname from saved settings!");
+                ehal::log_web(F("Failed to configure hostname from saved settings!"));
             }
         }
         WiFi.begin(config.WifiSsid.c_str(), config.WifiPassword.c_str());
@@ -40,20 +40,20 @@ bool initialize_wifi_access_point()
     {
         if (!WiFi.softAP(config.HostName.c_str(), config.WifiPassword.c_str()))
         {
-            ehal::log_web("Unable to create WiFi Access point!");
+            ehal::log_web(F("Unable to create WiFi Access point!"));
             return false;
         }
     }
 
     while (WiFi.isConnected())
     {
-        ehal::log_web("Waiting 500ms for WiFi connection...");
+        ehal::log_web(F("Waiting 500ms for WiFi connection..."));
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
     }
 
     WiFi.setAutoReconnect(true);
 
-    ehal::log_web("WiFi connection established!");
+    ehal::log_web(F("WiFi connection established!"));
     return true;
 }
 
@@ -65,8 +65,8 @@ void update_time(bool force)
     if (force || now - last_time_update > (std::chrono::hours(24) + std::chrono::seconds(5)))
     {
         last_time_update = now;
-        configTzTime("UTC0", "pool.ntp.org");
-        ehal::log_web("Updated UTC time from NTP");
+        configTzTime(F("UTC0"), F("pool.ntp.org"));
+        ehal::log_web(F("Updated UTC time from NTP"));
     }
 }
 
@@ -74,11 +74,11 @@ void setup()
 {
     if (!ehal::load_saved_configuration())
     {
-        ehal::log_web("Failed to load configuration!");
+        ehal::log_web(F("Failed to load configuration!"));
         return;
     }
 
-    ehal::log_web("Configuration parameters loaded from NVS");
+    ehal::log_web(F("Configuration parameters loaded from NVS"));
 
     initialize_wifi_access_point();
 
@@ -86,7 +86,7 @@ void setup()
 
     if (ehal::requires_first_time_configuration())
     {
-        ehal::log_web("First time configuration required, starting captive portal...");
+        ehal::log_web(F("First time configuration required, starting captive portal..."));
 
         ehal::http::initialize_captive_portal();
     }
@@ -97,7 +97,7 @@ void setup()
         mqttInitialized = ehal::mqtt::initialize();
     }    
 
-    ehal::log_web("Ecodan HomeAssistant Bridge startup successful, starting request processing.");
+    ehal::log_web(F("Ecodan HomeAssistant Bridge startup successful, starting request processing."));
 }
 
 void loop()

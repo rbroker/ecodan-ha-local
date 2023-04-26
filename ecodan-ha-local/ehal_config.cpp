@@ -13,22 +13,22 @@ namespace ehal
     bool load_saved_configuration()
     {
         Preferences prefs;
-        prefs.begin("config", true);
+        prefs.begin(F("config"), true);
 
         Config& config = config_instance();
-        config.DevicePassword = prefs.getString("device_pw");     
-        config.SerialRxPort = prefs.getUShort("serial_rx", 33U);
-        config.SerialTxPort = prefs.getUShort("serial_tx", 34U);
-        config.DumpPackets = prefs.getBool("dump_pkt", false);
-        config.HostName = prefs.getString("hostname", "ecodan_ha_local");
-        config.WifiSsid = prefs.getString("wifi_ssid");
-        config.WifiPassword = prefs.getString("wifi_pw");
-        config.HostName = prefs.getString("hostname", "ecodan_ha_local");
-        config.MqttServer = prefs.getString("mqtt_server");
-        config.MqttPort = prefs.getUShort("mqtt_port", 1883U);
-        config.MqttUserName = prefs.getString("mqtt_username");
-        config.MqttPassword = prefs.getString("mqtt_pw");
-        config.MqttTopic = prefs.getString("mqtt_topic", "ecodan_hp");
+        config.DevicePassword = prefs.getString(F("device_pw"));     
+        config.SerialRxPort = prefs.getUShort(F("serial_rx"), 33U);
+        config.SerialTxPort = prefs.getUShort(F("serial_tx"), 34U);
+        config.DumpPackets = prefs.getBool(F("dump_pkt"), false);
+        config.HostName = prefs.getString(F("hostname"), F("ecodan_ha_local"));
+        config.WifiSsid = prefs.getString(F("wifi_ssid"));
+        config.WifiPassword = prefs.getString(F("wifi_pw"));
+        config.HostName = prefs.getString(F("hostname"), F("ecodan_ha_local"));
+        config.MqttServer = prefs.getString(F("mqtt_server"));
+        config.MqttPort = prefs.getUShort(F("mqtt_port"), 1883U);
+        config.MqttUserName = prefs.getString(F("mqtt_username"));
+        config.MqttPassword = prefs.getString(F("mqtt_pw"));
+        config.MqttTopic = prefs.getString(F("mqtt_topic"), F("ecodan_hp"));
 
         prefs.end();
 
@@ -38,19 +38,19 @@ namespace ehal
     bool save_configuration(const Config& config)
     {
         Preferences prefs;
-        prefs.begin("config", /* readonly = */ false);
-        prefs.putString("device_pw", config.DevicePassword);  
-        prefs.putUShort("serial_rx", config.SerialRxPort);
-        prefs.putUShort("serial_tx", config.SerialTxPort);  
-        prefs.putBool("dump_pkt", config.DumpPackets);    
-        prefs.putString("wifi_ssid", config.WifiSsid);
-        prefs.putString("wifi_pw", config.WifiPassword);
-        prefs.putString("hostname", config.HostName);
-        prefs.putString("mqtt_server", config.MqttServer);
-        prefs.putUShort("mqtt_port", config.MqttPort);
-        prefs.putString("mqtt_username", config.MqttUserName);
-        prefs.putString("mqtt_pw", config.MqttPassword);
-        prefs.putString("mqtt_topic", config.MqttTopic);
+        prefs.begin(F("config"), /* readonly = */ false);
+        prefs.putString(F("device_pw"), config.DevicePassword);  
+        prefs.putUShort(F("serial_rx"), config.SerialRxPort);
+        prefs.putUShort(F("serial_tx"), config.SerialTxPort);  
+        prefs.putBool(F("dump_pkt"), config.DumpPackets);    
+        prefs.putString(F("wifi_ssid"), config.WifiSsid);
+        prefs.putString(F("wifi_pw"), config.WifiPassword);
+        prefs.putString(F("hostname"), config.HostName);
+        prefs.putString(F("mqtt_server"), config.MqttServer);
+        prefs.putUShort(F("mqtt_port"), config.MqttPort);
+        prefs.putString(F("mqtt_username"), config.MqttUserName);
+        prefs.putString(F("mqtt_pw"), config.MqttPassword);
+        prefs.putString(F("mqtt_topic"), config.MqttTopic);
         prefs.end();
 
         return true;
@@ -59,7 +59,7 @@ namespace ehal
     bool clear_configuration()
     {
         Preferences prefs;
-        prefs.begin("config", /* readonly = */ false);
+        prefs.begin(F("config"), /* readonly = */ false);
         prefs.clear();
         prefs.end();
 
