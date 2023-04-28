@@ -17,6 +17,11 @@
 
 bool mqttInitialized = false;
 bool heatpumpInitialized = false;
+uint8_t ledTick = 0;
+const uint8_t ledTickPatternHpDisconnect[] = { HIGH, LOW, HIGH, LOW, HIGH, HIGH, HIGH, HIGH, LOW };
+const uint8_t ledTickPatternMqttDisconnect[] = { HIGH, HIGH, HIGH, LOW, LOW, LOW };
+
+#define LED_STATUS_PIN 15
 
 bool initialize_wifi_access_point()
 {
@@ -70,6 +75,30 @@ void update_time(bool force)
     }
 }
 
+void update_status_led()
+{
+    static auto last_tick_update = std::chrono::steady_clock::now();
+    auto now = std::chrono::steady_clock::now();
+
+    if (now - last_tick_update > std::chrono::milliseconds(250))
+    {
+        last_tick_update = now;
+
+        if (!ehal::hp::is_connected())
+        {
+            digitalWrite(LED_STATUS_PIN, ledTickPatternHpDisconnect[ledTick++ % sizeof(ledTickPatternHpDisconnect)]);
+        }
+        else if (!ehal::mqtt::is_connected())
+        {
+            digitalWrite(LED_STATUS_PIN, ledTickPatternMqttDisconnect[ledTick++ % sizeof(ledTickPatternMqttDisconnect)]);
+        }
+        else
+        {
+            digitalWrite(LED_STATUS_PIN, HIGH);
+        }
+    }
+}
+
 void setup()
 {
     if (!ehal::load_saved_configuration())
@@ -97,13 +126,15 @@ void setup()
         mqttInitialized = ehal::mqtt::initialize();
     }
 
+    pinMode(LED_STATUS_PIN, OUTPUT);
+
     ehal::log_web(F("Ecodan HomeAssistant Bridge startup successful, starting request processing."));
 }
 
 void loop()
-{
+{    
     try
-    {
+    {    
         ehal::http::handle_loop();
 
         if (heatpumpInitialized)
@@ -112,8 +143,10 @@ void loop()
         if (mqttInitialized)
             ehal::mqtt::handle_loop();
 
-        update_time(/* force =*/false);
-        delay(1);
+        update_time(/* force =*/false);   
+        update_status_led();    
+        delay(1);  
+
     }
     catch (std::exception const& ex)
     {

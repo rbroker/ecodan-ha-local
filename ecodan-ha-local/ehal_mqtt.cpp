@@ -595,7 +595,7 @@ off
             return false;
         }
 
-        Config& config = config_instance();
+        auto& config = config_instance();
         mqttClient.setKeepAlive(15);
         mqttClient.setServer(config.MqttServer.c_str(), config.MqttPort);
         mqttClient.setCallback(mqtt_callback);
