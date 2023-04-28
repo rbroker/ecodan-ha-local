@@ -124,11 +124,11 @@ namespace ehal
 </form>
 )";
 
-    const char* BODY_TEMPLATE_CONFIG_SAVED PROGMEM = R"(<p>Configuration Saved! Rebooting...<span id="reboot_progress"><span></p>)";
+    const char* BODY_TEMPLATE_CONFIG_SAVED PROGMEM = R"(<p>Configuration Saved! Rebooting...<span id="reboot_progress"><span> <a href="/">Home</a></p>)";
 
-    const char* BODY_TEMPLATE_CONFIG_CLEARED PROGMEM = R"(<p>Configuration Reset To Default! Rebooting...<span id="reboot_progress"></span></p>)";
+    const char* BODY_TEMPLATE_CONFIG_CLEARED PROGMEM = R"(<p>Configuration Reset To Default! Rebooting...<span id="reboot_progress"></span> <a href="/">Home</a></p>)";
 
-    const char* BODY_TEMPLATE_FIRMWARE_UPDATE PROGMEM = R"(<p>Updating firmware...<span id="reboot_progress"></span></p>)";
+    const char* BODY_TEMPLATE_FIRMWARE_UPDATE PROGMEM = R"(<p>Updating firmware...<span id="reboot_progress"></span> <a href="/">Home</a></p>)";
 
     const char* BODY_TEMPLATE_REDIRECT PROGMEM = R"(<p>Redirecting...</p>)";
 
