@@ -357,30 +357,38 @@ namespace ehal::hp
     {
         while (true)
         {
-            Message res;
-            if (!serial_rx(res))
+            try
             {
-                delay(1);
-                continue;
-            }
+                Message res;
+                if (!serial_rx(res))
+                {
+                    delay(1);
+                    continue;
+                }
 
-            switch (res.type())
+                switch (res.type())
+                {
+                case MsgType::SET_RES:
+                    handle_set_response(res);
+                    break;
+                case MsgType::GET_RES:
+                    handle_get_response(res);
+                    break;
+                case MsgType::CONNECT_RES:
+                    handle_connect_response(res);
+                    break;
+                case MsgType::EXT_CONNECT_RES:
+                    handle_ext_connect_response(res);
+                    break;
+                default:
+                    log_web(F("Unknown serial message type received: %#x"), static_cast<uint8_t>(res.type()));
+                    break;
+                }
+            }
+            catch (std::exception const& ex)
             {
-            case MsgType::SET_RES:
-                handle_set_response(res);
-                break;
-            case MsgType::GET_RES:
-                handle_get_response(res);
-                break;
-            case MsgType::CONNECT_RES:
-                handle_connect_response(res);
-                break;
-            case MsgType::EXT_CONNECT_RES:
-                handle_ext_connect_response(res);
-                break;
-            default:
-                log_web(F("Unknown serial message type received: %#x"), static_cast<uint8_t>(res.type()));
-                break;
+                ehal::log_web("Exception occurred on serial rx thread: %s", ex.what());
+                std::this_thread::sleep_for(std::chrono::seconds(1));
             }
         }
     }

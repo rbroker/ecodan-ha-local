@@ -231,12 +231,6 @@ namespace ehal::hp
             return false;
         }
 
-        void store_byte(uint8_t v)
-        {
-            buffer_[writeOffset_++] = v;
-            valid_ = true;
-        }
-
         float get_float24(size_t index)
         {
             float value = *(reinterpret_cast<uint16_t*>(std::addressof(payload()[index])));

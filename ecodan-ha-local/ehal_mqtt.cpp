@@ -389,7 +389,7 @@ off
 
         if (!icon.isEmpty())
         {
-            payloadJson["icon"] = icon;
+            payloadJson[F("icon")] = icon;
         }
 
         if (!publish_mqtt(discoveryTopic, payloadJson, /* retain =*/true))

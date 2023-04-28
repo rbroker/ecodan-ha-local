@@ -1,4 +1,4 @@
-#include <WiFi.h>   
+#include <WiFi.h>
 #include <time.h>
 
 #include <chrono>
@@ -95,21 +95,29 @@ void setup()
         ehal::http::initialize_default();
         heatpumpInitialized = ehal::hp::initialize();
         mqttInitialized = ehal::mqtt::initialize();
-    }    
+    }
 
     ehal::log_web(F("Ecodan HomeAssistant Bridge startup successful, starting request processing."));
 }
 
 void loop()
 {
-    ehal::http::handle_loop();
+    try
+    {
+        ehal::http::handle_loop();
 
-    if (heatpumpInitialized)
-        ehal::hp::handle_loop();
+        if (heatpumpInitialized)
+            ehal::hp::handle_loop();
 
-    if (mqttInitialized)
-        ehal::mqtt::handle_loop();
+        if (mqttInitialized)
+            ehal::mqtt::handle_loop();
 
-    update_time(/* force =*/false);
-    delay(1);
+        update_time(/* force =*/false);
+        delay(1);
+    }
+    catch (std::exception const& ex)
+    {
+        ehal::log_web("Exception occurred during main loop processing: %s", ex.what());
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
 }
