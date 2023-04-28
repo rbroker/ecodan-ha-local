@@ -62,6 +62,10 @@ namespace ehal
         <input class="column column-75" type="text" inputmode="numeric" id="serial_tx" name="serial_tx" value="{{serial_tx}}" required />
     </div>
     <div class="row">
+        <label class="column column-25" for="status_led">Status LED Port:</label>
+        <input class="column column-75" type="text" inputmode="numeric" id="status_led" name="status_led" value="{{status_led}}" />
+    </div>
+    <div class="row">
         <label class="column column-25" for="dump_pkt">Dump Serial Packets:</label>
         <input class="column column-75" type="checkbox" id="dump_pkt" name="dump_pkt" {{dump_pkt}} />
     </div>

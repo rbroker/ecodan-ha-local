@@ -59,6 +59,17 @@ The GPIO pin number which should be used for Serial data transmit.
 
 *Required*: Yes
 
+### Serial Tx Port
+The GPIO pin number which should be used for the status LED. The following flashing patterns are possible:
+
+- 2 short flashes, followed by one long flash: Serial connection to the Heat Pump has not been established.
+- Steady long flashes: Network connection to the MQTT server has not been established
+- Constantly lit: Status is OK
+
+*Default*: `15`
+
+*Required*: No
+
 ### Dump Serial Packets
 Dump packets sent to/received from the heat pump to the diagnostic log window on the Diagnostics page.
 

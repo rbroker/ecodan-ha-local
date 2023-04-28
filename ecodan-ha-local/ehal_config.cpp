@@ -19,6 +19,7 @@ namespace ehal
         config.DevicePassword = prefs.getString(F("device_pw"));     
         config.SerialRxPort = prefs.getUShort(F("serial_rx"), 33U);
         config.SerialTxPort = prefs.getUShort(F("serial_tx"), 34U);
+        config.StatusLed = prefs.getUShort(F("status_led"), 15U);
         config.DumpPackets = prefs.getBool(F("dump_pkt"), false);
         config.HostName = prefs.getString(F("hostname"), F("ecodan_ha_local"));
         config.WifiSsid = prefs.getString(F("wifi_ssid"));
@@ -42,6 +43,7 @@ namespace ehal
         prefs.putString(F("device_pw"), config.DevicePassword);  
         prefs.putUShort(F("serial_rx"), config.SerialRxPort);
         prefs.putUShort(F("serial_tx"), config.SerialTxPort);  
+        prefs.putUShort(F("status_led"), config.StatusLed);
         prefs.putBool(F("dump_pkt"), config.DumpPackets);    
         prefs.putString(F("wifi_ssid"), config.WifiSsid);
         prefs.putString(F("wifi_pw"), config.WifiPassword);

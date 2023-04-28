@@ -155,6 +155,7 @@ namespace ehal::http
         page.replace(F("{{device_pw}}"), config.DevicePassword);
         page.replace(F("{{serial_rx}}"), String(config.SerialRxPort));
         page.replace(F("{{serial_tx}}"), String(config.SerialTxPort));
+        page.replace(F("{{status_led}}"), String(config.StatusLed));
 
         if (config.DumpPackets)
             page.replace(F("{{dump_pkt}}"), F("checked"));
@@ -189,6 +190,7 @@ namespace ehal::http
         config.DevicePassword = server.arg(F("device_pw"));
         config.SerialRxPort = server.arg(F("serial_rx")).toInt();
         config.SerialTxPort = server.arg(F("serial_tx")).toInt();
+        config.StatusLed = server.arg(F("status_led")).toInt();
 
         if (server.hasArg(F("dump_pkt")))
             config.DumpPackets = true;

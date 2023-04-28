@@ -21,8 +21,6 @@ uint8_t ledTick = 0;
 const uint8_t ledTickPatternHpDisconnect[] = { HIGH, LOW, HIGH, LOW, HIGH, HIGH, HIGH, HIGH, LOW };
 const uint8_t ledTickPatternMqttDisconnect[] = { HIGH, HIGH, HIGH, LOW, LOW, LOW };
 
-#define LED_STATUS_PIN 15
-
 bool initialize_wifi_access_point()
 {
     ehal::log_web(F("Initializing WiFi connection..."));
@@ -84,17 +82,19 @@ void update_status_led()
     {
         last_tick_update = now;
 
+        auto& config = ehal::config_instance();
+
         if (!ehal::hp::is_connected())
         {
-            digitalWrite(LED_STATUS_PIN, ledTickPatternHpDisconnect[ledTick++ % sizeof(ledTickPatternHpDisconnect)]);
+            digitalWrite(config.StatusLed, ledTickPatternHpDisconnect[ledTick++ % sizeof(ledTickPatternHpDisconnect)]);
         }
         else if (!ehal::mqtt::is_connected())
         {
-            digitalWrite(LED_STATUS_PIN, ledTickPatternMqttDisconnect[ledTick++ % sizeof(ledTickPatternMqttDisconnect)]);
+            digitalWrite(config.StatusLed, ledTickPatternMqttDisconnect[ledTick++ % sizeof(ledTickPatternMqttDisconnect)]);
         }
         else
         {
-            digitalWrite(LED_STATUS_PIN, HIGH);
+            digitalWrite(config.StatusLed, HIGH);
         }
     }
 }
@@ -126,7 +126,7 @@ void setup()
         mqttInitialized = ehal::mqtt::initialize();
     }
 
-    pinMode(LED_STATUS_PIN, OUTPUT);
+    pinMode(ehal::config_instance().StatusLed, OUTPUT);
 
     ehal::log_web(F("Ecodan HomeAssistant Bridge startup successful, starting request processing."));
 }
@@ -146,7 +146,6 @@ void loop()
         update_time(/* force =*/false);   
         update_status_led();    
         delay(1);  
-
     }
     catch (std::exception const& ex)
     {
