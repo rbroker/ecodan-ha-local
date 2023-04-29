@@ -7,7 +7,29 @@ namespace ehal
      * by a network scan, without blocking page load. If any of the returned SSIDs match the SSID we've previously
      * saved in our preferences, then attempt to select it automatically.
      */
-    const char* SCRIPT_CONFIGURATION_PAGE PROGMEM = R"(function inject_ssid_list() {
+    const char* SCRIPT_CONFIGURATION_PAGE PROGMEM = R"(function update_ssi() {
+        let selected = document.getElementById('wifi_ssid');
+        for (let i = 0; i < wifi.length; ++i) {
+            if (wifi[i].ssid != selected.value)
+                continue;            
+
+            let el = document.getElementById('ssi');
+            el.className = 'signal-icon';
+            if (wifi[i].rssi > -30) {
+                el.classList.add('v');
+            } else if (wifi[i].rssi > -55) {
+                el.classList.add('iv');
+            } else if (wifi[i].rssi > -67) {
+                el.classList.add('iii');
+            } else if (wifi[i].rssi > -70) {
+                el.classList.add('ii');
+            } else if (wifi[i].rssi > -80) {
+                el.classList.add('i');
+            }
+        }
+    }
+
+    function inject_ssid_list() {
         disable_all_inputs();
         let select = document.getElementById('wifi_ssid');
         let option = document.createElement('option');
@@ -25,15 +47,17 @@ namespace ehal
                 select.disabled = false;
                 select.innerHTML = '';
                 let jsonResponse = JSON.parse(this.responseText);
-                for (let i = 0; i < jsonResponse.ssids.length; ++i) {
+                wifi = jsonResponse.wifi;
+                for (let i = 0; i < jsonResponse.wifi.length; ++i) {
                     let option = document.createElement('option');
-                    option.value = jsonResponse.ssids[i];
-                    option.textContent = jsonResponse.ssids[i];
-                    if (jsonResponse.ssids[i] == '{{wifi_ssid}}') {
-                        option.selected = true;
+                    option.value = jsonResponse.wifi[i].ssid;
+                    option.textContent = jsonResponse.wifi[i].ssid;
+                    if (jsonResponse.wifi[i].ssid == '{{wifi_ssid}}') {
+                        option.selected = true;                                              
                     }
                     select.appendChild(option);
-                }
+                }                
+                update_ssi();
             } else {
                 select.disabled = true;
             }
@@ -136,6 +160,7 @@ namespace ehal
         window.setTimeout(check_alive, 2000);
     }
 
+    let wifi = [];
     window.addEventListener('load', trigger_life_check))";
 
     const char* SCRIPT_UPDATE_DIAGNOSTIC_LOGS PROGMEM = R"(function update_diagnostic_logs() {

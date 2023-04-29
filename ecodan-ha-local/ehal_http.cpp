@@ -238,7 +238,7 @@ namespace ehal::http
     void handle_query_ssid_list()
     {
         DynamicJsonDocument json(1024);
-        JsonArray ssids = json.createNestedArray(F("ssids"));
+        JsonArray wifi = json.createNestedArray(F("wifi"));
         String jsonOut;
 
         log_web(F("Starting WiFi scan..."));
@@ -248,7 +248,9 @@ namespace ehal::http
         for (int i = 0; i < count; ++i)
         {
             log_web(F("SSID: %s"), WiFi.SSID(i).c_str());
-            ssids.add(WiFi.SSID(i));
+            JsonObject obj = wifi.createNestedObject();
+            obj[F("ssid")] = WiFi.SSID(i);
+            obj[F("rssi")] = WiFi.RSSI(i);
         }
 
         serializeJson(json, jsonOut);
