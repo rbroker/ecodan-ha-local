@@ -672,6 +672,8 @@ img {
     flex-direction: row;    
     justify-content: space-between;    
     align-items: baseline;
+    position: absolute;
+    margin: 8px 12px;
   }
   .signal-icon .signal-bar {
     width: 4px;    

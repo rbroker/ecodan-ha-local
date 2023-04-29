@@ -72,18 +72,18 @@ namespace ehal
     <br />
     <h2>WiFi Configuration:</h2>
     <div class="row">
-        <label  class="column column-25" for="wifi_ssid">WiFi SSID:</label>        
-        <select class="column" id="wifi_ssid" name="wifi_ssid" onchange='update_ssi()' required>
-            <option id="pre-ssid" value="{{wifi_ssid}}">{{wifi_ssid}}</option>
-        </select>            
-        <div class="column column-10" style="margin-top:8px;">
+        <label  class="column column-25" for="wifi_ssid">WiFi SSID:</label>     
+        <div class="column column-75">   
+            <select id="wifi_ssid" name="wifi_ssid" onchange='update_ssi()' style="width:90%;" required>
+                <option id="pre-ssid" value="{{wifi_ssid}}">{{wifi_ssid}}</option>
+            </select>                        
             <div id="ssi" class="signal-icon">
                 <div class="signal-bar"></div>
                 <div class="signal-bar"></div>
                 <div class="signal-bar"></div>
                 <div class="signal-bar"></div>
                 <div class="signal-bar"></div>
-            </div>   
+            </div>               
         </div>     
     </div>
     <div class="row">
