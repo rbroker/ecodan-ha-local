@@ -309,7 +309,7 @@ off
         payloadJson[F("payload_on")] = F("on");
         payloadJson[F("exp_aft")] = SENSOR_STATE_TIMEOUT;
 
-        if (!publish_mqtt(discoveryTopic, payloadJson, /* retain =*/true))
+        if (!publish_mqtt(discoveryTopic, payloadJson))
         {
             log_web(F("Failed to publish homeassistant %s entity auto-discover"), uniqueName.c_str());
             return false;
@@ -360,7 +360,7 @@ off
             break;
         }
 
-        if (!publish_mqtt(discoveryTopic, payloadJson, /* retain =*/true))
+        if (!publish_mqtt(discoveryTopic, payloadJson))
         {
             log_web(F("Failed to publish homeassistant %s entity auto-discover"), uniqueName.c_str());
             return false;
@@ -392,7 +392,7 @@ off
             payloadJson[F("icon")] = icon;
         }
 
-        if (!publish_mqtt(discoveryTopic, payloadJson, /* retain =*/true))
+        if (!publish_mqtt(discoveryTopic, payloadJson))
         {
             log_web(F("Failed to publish homeassistant %s entity auto-discover"), uniqueName.c_str());
             return false;
