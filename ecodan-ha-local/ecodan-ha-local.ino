@@ -68,7 +68,7 @@ void update_time(bool force)
     if (force || now - last_time_update > (std::chrono::hours(24) + std::chrono::seconds(5)))
     {
         last_time_update = now;
-        configTzTime(F("UTC0"), F("pool.ntp.org"));
+        configTzTime("UTC0", "pool.ntp.org");
         ehal::log_web(F("Updated UTC time from NTP"));
     }
 }
@@ -149,7 +149,7 @@ void loop()
     }
     catch (std::exception const& ex)
     {
-        ehal::log_web("Exception occurred during main loop processing: %s", ex.what());
+        ehal::log_web(F("Exception occurred during main loop processing: %s"), ex.what());
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }
 }

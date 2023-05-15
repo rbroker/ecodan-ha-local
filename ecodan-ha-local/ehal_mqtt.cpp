@@ -146,7 +146,7 @@ off
         }
     }
 
-    const char* get_connection_error_string()
+    String get_connection_error_string()
     {
         switch (mqttClient.state())
         {
@@ -218,7 +218,7 @@ off
         device[F("sw")] = get_software_version();
         device[F("mdl")] = hp::get_device_model();
         device[F("mf")] = F("MITSUBISHI ELECTRIC");
-        device[F("cu")] = FPSTR("http://") + WiFi.localIP().toString() + F("/configuration");
+        device[F("cu")] = String(F("http://")) + WiFi.localIP().toString() + F("/configuration");
     }
 
     bool publish_mqtt(const String& topic, const String& payload, bool retain = false)
@@ -241,7 +241,7 @@ off
         String uniqueName = unique_entity_name(F("climate_control"));
 
         const auto& config = config_instance();
-        String discoveryTopic = FPSTR("homeassistant/climate/") + uniqueName + F("/config");
+        String discoveryTopic = String(F("homeassistant/climate/")) + uniqueName + F("/config");
         String stateTopic = config.MqttTopic + "/" + uniqueName + F("/state");
         String tempCmdTopic = config.MqttTopic + "/" + uniqueName + F("/temp_cmd");
         String modeCmdTopic = config.MqttTopic + "/" + uniqueName + F("/mode_cmd");
@@ -294,7 +294,7 @@ off
     {
         const auto& config = config_instance();
         String uniqueName = unique_entity_name(name);
-        String discoveryTopic = FPSTR("homeassistant/binary_sensor/") + uniqueName + F("/config");
+        String discoveryTopic = String(F("homeassistant/binary_sensor/")) + uniqueName + F("/config");
         String stateTopic = config.MqttTopic + "/" + uniqueName + F("/state");
 
         // https://www.home-assistant.io/integrations/binary_sensor.mqtt/
@@ -322,7 +322,7 @@ off
     {
         const auto& config = config_instance();
         String uniqueName = unique_entity_name(name);
-        String discoveryTopic = FPSTR("homeassistant/sensor/") + uniqueName + F("/config");
+        String discoveryTopic = String(F("homeassistant/sensor/")) + uniqueName + F("/config");
         String stateTopic = config.MqttTopic + "/" + uniqueName + F("/state");
 
         // https://www.home-assistant.io/integrations/sensor.mqtt/
@@ -373,7 +373,7 @@ off
     {
         const auto& config = config_instance();
         String uniqueName = unique_entity_name(name);
-        String discoveryTopic = FPSTR("homeassistant/sensor/") + uniqueName + F("/config");
+        String discoveryTopic = String(F("homeassistant/sensor/")) + uniqueName + F("/config");
         String stateTopic = config.MqttTopic + "/" + uniqueName + F("/state");
 
         // https://www.home-assistant.io/integrations/sensor.mqtt/

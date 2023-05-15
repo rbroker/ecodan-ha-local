@@ -164,7 +164,7 @@ namespace ehal::hp
 
             if (!cmdQueue.empty())
             {
-                log_web(F("Existing GET STATUS operation is already in progress: %u"), cmdQueue.size());
+                log_web(F("Can't queue next status update, command queue is not empty: %u"), cmdQueue.size());
                 return false;
             }
 
@@ -387,7 +387,7 @@ namespace ehal::hp
             }
             catch (std::exception const& ex)
             {
-                ehal::log_web("Exception occurred on serial rx thread: %s", ex.what());
+                ehal::log_web(F("Exception occurred on serial rx thread: %s"), ex.what());
                 std::this_thread::sleep_for(std::chrono::seconds(1));
             }
         }

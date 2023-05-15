@@ -74,7 +74,7 @@ namespace ehal::http
         char hex[3] = {};
         for (int i = 0; i < sizeof(sha256); ++i)
         {
-            snprintf(hex, sizeof(hex), F("%02x"), sha256[i]);
+            snprintf(hex, sizeof(hex), "%02x", sha256[i]);
             cookie += hex;
         }
 
@@ -98,7 +98,7 @@ namespace ehal::http
         if (!loginCookie.isEmpty())
         {
             String clientCookie = server.header(F("Cookie"));
-            if (clientCookie.indexOf(FPSTR("login-cookie=") + loginCookie) != -1)
+            if (clientCookie.indexOf(String(F("login-cookie=")) + loginCookie) != -1)
             {
                 return false;
             }
@@ -280,7 +280,7 @@ namespace ehal::http
         page.replace(F("{{PAGE_BODY}}"), F(BODY_TEMPLATE_DIAGNOSTICS));
 
         char deviceMac[19] = {};
-        snprintf(deviceMac, sizeof(deviceMac), F("%#llx"), ESP.getEfuseMac());
+        snprintf_P(deviceMac, sizeof(deviceMac), (PGM_P)F("%#llx"), ESP.getEfuseMac());
 
         page.replace(F("{{sw_ver}}"), get_software_version());
         page.replace(F("{{device_mac}}"), deviceMac);
@@ -299,7 +299,7 @@ namespace ehal::http
         page.replace(F("{{wifi_mac}}"), WiFi.macAddress());
         page.replace(F("{{wifi_tx_power}}"), String(WiFi.getTxPower()));
 
-        page.replace(F("{{ha_hp_entity}}"), FPSTR("climate.") + ehal::mqtt::unique_entity_name(F("climate_control")));
+        page.replace(F("{{ha_hp_entity}}"), String(F("climate.")) + ehal::mqtt::unique_entity_name(F("climate_control")));
 
         page.replace(F("{{hp_tx_count}}"), uint64_to_string(hp::get_tx_msg_count()));
         page.replace(F("{{hp_rx_count}}"), uint64_to_string(hp::get_rx_msg_count()));
@@ -430,7 +430,7 @@ namespace ehal::http
 
             log_web(F("Successful device login, authorising client."));
 
-            server.sendHeader(F("Set-Cookie"), FPSTR("login-cookie=") + loginCookie);
+            server.sendHeader(F("Set-Cookie"), String(F("login-cookie=")) + loginCookie);
 
             // Reset brute-force mitigation count, to avoid upsetting legitimate users.
             failedLoginCount = 0;
@@ -478,7 +478,7 @@ namespace ehal::http
         server.on(F("/redirect.js"), handle_redirect_js);
         server.on(F("/milligram.css"), handle_milligram_css);
 
-        const char* headers[] = {F("Cookie")};
+        const char* headers[] = {"Cookie"};
         server.collectHeaders(headers, sizeof(headers) / sizeof(char*));
         server.begin();
     }

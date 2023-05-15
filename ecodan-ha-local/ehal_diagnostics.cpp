@@ -13,9 +13,9 @@ namespace ehal
     std::deque<String> diagnosticRingbuffer;
 
 #define MAX_MESSAGE_LENGTH 255U
-#define MAX_NUM_ELEMENTS 32U
+#define MAX_NUM_ELEMENTS 32U    
 
-    void log_web(const char* fmt, ...)
+    void log_web(const __FlashStringHelper* fmt, ...)
     {
         char buffer[MAX_MESSAGE_LENGTH] = {};
 
@@ -25,11 +25,11 @@ namespace ehal
         // Include timestamp in diagnostic log message.
         time_t now = time(nullptr);
         struct tm t = *localtime(&now);
-        strftime(buffer, sizeof(buffer), F("[%T] "), &t);
+        strftime(buffer, sizeof(buffer), "[%T] ", &t);
         const size_t offset = 11; // "[14:55:02] "
 
         // Format remainder of log message into buffer.
-        vsnprintf(buffer + offset, sizeof(buffer) - offset, fmt, args);
+        vsnprintf_P(buffer + offset, sizeof(buffer) - offset, (PGM_P)fmt, args);
 
         va_end(args);
 
@@ -41,7 +41,7 @@ namespace ehal
         diagnosticRingbuffer.push_back(buffer);
     }
 
-    void log_web_ratelimit(const char* fmt, ...)
+    void log_web_ratelimit(const __FlashStringHelper* fmt, ...)
     {
         static std::chrono::steady_clock::time_point last_log = std::chrono::steady_clock::now();
 
@@ -57,11 +57,11 @@ namespace ehal
             // Include timestamp in diagnostic log message.
             time_t now = time(nullptr);
             struct tm t = *localtime(&now);
-            strftime(buffer, sizeof(buffer), F("[%T] "), &t);
+            strftime(buffer, sizeof(buffer), "[%T] ", &t);
             const size_t offset = 11; // "[14:55:02] "
 
             // Format remainder of log message into buffer.
-            vsnprintf(buffer + offset, sizeof(buffer) - offset, fmt, args);
+            vsnprintf_P(buffer + offset, sizeof(buffer) - offset, (PGM_P)fmt, args);
 
             va_end(args);
 
