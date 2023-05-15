@@ -445,10 +445,6 @@ input[type='radio'] {
         width: calc(100% + 2.0rem)
     }
 
-    .row .column {        
-        padding: 0 1.0rem;
-    }
-
     .row .column.column-offset-10 {
         margin-left: 10%
     }
