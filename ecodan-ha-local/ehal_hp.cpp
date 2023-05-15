@@ -189,7 +189,7 @@ namespace ehal::hp
 
     String get_device_model()
     {
-        return F("Ecodan PUZ-WM60VAA");
+        return F("Ecodan Air Source Heat Pump");
     }
 
     Status& get_status()
