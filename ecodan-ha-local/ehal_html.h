@@ -102,19 +102,19 @@ namespace ehal
     <h2>MQTT Configuration:</h2>
     <div class="row">
         <label class="column column-25" for="mqtt_server">MQTT Server:</label>
-        <input class="column column-75" type="text" id="mqtt_server" name="mqtt_server" value="{{mqtt_server}}" required />
+        <input class="column column-75" type="text" id="mqtt_server" name="mqtt_server" value="{{mqtt_server}}" />
     </div>
     <div class="row">
         <label class="column column-25" for="mqtt_port">MQTT Port:</label>
-        <input class="column column-75" type="text" inputmode="numeric" id="mqtt_port" name="mqtt_port" value="{{mqtt_port}}" required />
+        <input class="column column-75" type="text" inputmode="numeric" id="mqtt_port" name="mqtt_port" value="{{mqtt_port}}" />
     </div>
     <div class="row">
         <label class="column column-25" for="mqtt_user">MQTT User:</label>
-        <input class="column column-75" type="text" id="mqtt_user" name="mqtt_user" value="{{mqtt_user}}" required />
+        <input class="column column-75" type="text" id="mqtt_user" name="mqtt_user" value="{{mqtt_user}}" />
     </div>
     <div class="row">
         <label class="column column-25" for="mqtt_pw">MQTT Password:</label>
-        <input class="column column-75" type="password" id="mqtt_pw" name="mqtt_pw" value="{{mqtt_pw}}" required />
+        <input class="column column-75" type="password" id="mqtt_pw" name="mqtt_pw" value="{{mqtt_pw}}" />
     </div>
     <div class="row">
         <label class="column column-25" for="mqtt_topic">MQTT Topic:</label>
