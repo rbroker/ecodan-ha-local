@@ -556,7 +556,7 @@ off
             log_web(F("MQTT user '%s' has configured password, connecting with credentials..."), config.MqttUserName.c_str());
             if (!mqttClient.connect(WiFi.localIP().toString().c_str(), config.MqttUserName.c_str(), config.MqttPassword.c_str()))
             {
-                log_web(F("MQTT connection failure: '%s'"), get_connection_error_string());
+                log_web(F("MQTT connection failure: '%s'"), get_connection_error_string().c_str());
                 return false;
             }
         }
@@ -565,7 +565,7 @@ off
             log_web(F("MQTT username/password not configured, connecting as anonymous user..."));
             if (!mqttClient.connect(WiFi.localIP().toString().c_str()))
             {
-                log_web(F("MQTT connection failure: '%s'"), get_connection_error_string());
+                log_web(F("MQTT connection failure: '%s'"), get_connection_error_string().c_str());
                 return false;
             }
         }
