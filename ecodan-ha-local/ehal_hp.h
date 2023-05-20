@@ -154,7 +154,7 @@ namespace ehal::hp
             switch (HeatingMode)
             {
                 case ShMode::TEMPERATURE:
-                    return F("Temperature");
+                    return F("Target Temperature");
                 case ShMode::FLOW_CONTROL:
                     return F("Flow Control");
                 case ShMode::COMPENSATION_CURVE:
