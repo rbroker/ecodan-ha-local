@@ -399,8 +399,7 @@ namespace ehal::hp
 
         log_web(F("Initializing HeatPump with serial rx: %d, tx: %d"), (int8_t)config.SerialRxPort, (int8_t)config.SerialTxPort);
 
-        // port.begin(2400, SERIAL_8E1, config.SerialRxPort, config.SerialTxPort);
-        port.begin(2400, SERIAL_8N1, config.SerialRxPort, config.SerialTxPort);
+        port.begin(2400, SERIAL_8E1, config.SerialRxPort, config.SerialTxPort);        
         pinMode(config.SerialRxPort, INPUT_PULLUP);
 
         serialRxThread = std::thread{serial_rx_thread};

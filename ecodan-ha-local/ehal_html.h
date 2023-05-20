@@ -4,7 +4,7 @@ namespace ehal
 {
     const char* PAGE_TEMPLATE PROGMEM = R"(<!DOCTYPE html><html lang="en">
     <head>
-        <title>Ecodan: HomeAssistant Bridge</title>
+        <title>Ecodan: Home Assistant Bridge</title>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="stylesheet" href="/milligram.css">        

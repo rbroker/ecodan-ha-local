@@ -233,7 +233,7 @@ namespace ehal::hp
 
         float get_float24(size_t index)
         {
-            float value = *(reinterpret_cast<uint16_t*>(std::addressof(payload()[index])));
+            float value = uint16_t(payload()[index] << 8) | payload()[index + 1];
             float remainder = payload()[index + 2];
             return value + (remainder / 100.0f);
         }
