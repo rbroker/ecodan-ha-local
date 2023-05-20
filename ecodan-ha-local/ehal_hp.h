@@ -94,12 +94,12 @@ namespace ehal::hp
             {
                 case OperationMode::SH_ON:
                     [[fallthrough]]
-                case OperationMode::DHW_ON:
-                    [[fallthrough]]
                 case OperationMode::FROST_PROTECT:
                     return F("heating");
 
                 case OperationMode::OFF:
+                    [[fallthrough]]
+                case OperationMode::DHW_ON:
                     [[fallthrough]]
                 default:
                     return F("idle");
