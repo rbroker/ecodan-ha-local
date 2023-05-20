@@ -42,8 +42,8 @@ namespace ehal::hp
         enum class OperationMode : uint8_t
         {
             OFF = 0,
-            SH_ON = 1,
-            DHW_ON = 2,
+            DHW_ON = 1,
+            SH_ON = 2,
             FROST_PROTECT = 5
         };
 
