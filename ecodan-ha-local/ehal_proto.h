@@ -247,7 +247,7 @@ namespace ehal::hp
         float get_float8(size_t index)
         {
             float value = payload()[index];
-            return (value / 2) / 40.0f;
+            return (value / 2) - 40.0f;
         }
 
         void set_float16(float value, size_t index)
