@@ -17,7 +17,7 @@ Uses the CN105 connector on the Cased Flow Temp Controller (FTC6 in my setup) to
 
 ## Library Dependencies
 - ArduinoJson v6.21.2
-- Seeed_Arduino_mdedtls v3.0.1
+- Seeed_Arduino_mbedtls v3.0.1
 - PubSubClient v2.8
 
 ## First Time Setup
