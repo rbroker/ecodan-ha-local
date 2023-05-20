@@ -58,7 +58,8 @@ The GPIO pin number which should be used for Serial data transmit.
 | Default | Required |
 | ------- | -------- |
 | 34      | Yes      |
-### Serial Tx Port
+
+### Status LED Port
 The GPIO pin number which should be used for the status LED. The following flashing patterns are possible:
 
 - 2 short flashes, followed by one long flash: Serial connection to the Heat Pump has not been established.
