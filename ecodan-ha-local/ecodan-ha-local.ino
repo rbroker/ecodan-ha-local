@@ -37,6 +37,22 @@ bool initialize_wifi_access_point()
             }
         }
         WiFi.begin(config.WifiSsid.c_str(), config.WifiPassword.c_str());
+
+        for (int i = 0; i < 10; ++i)
+        {
+            if (WiFi.isConnected())
+                break;
+
+            ehal::log_web(F("Waiting 500ms for WiFi connection..."));
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        }
+
+        if (!WiFi.isConnected())
+        {
+            ehal::log_web(F("Couldn't connect to WiFi network on boot, falling back to AP mode."));
+            config.WifiPassword.clear();
+            config.WifiSsid.clear();
+        }
     }
 
     if (ehal::requires_first_time_configuration())
@@ -46,12 +62,6 @@ bool initialize_wifi_access_point()
             ehal::log_web(F("Unable to create WiFi Access point!"));
             return false;
         }
-    }
-
-    while (WiFi.isConnected())
-    {
-        ehal::log_web(F("Waiting 500ms for WiFi connection..."));
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
     }
 
     WiFi.setAutoReconnect(true);
