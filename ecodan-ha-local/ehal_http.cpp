@@ -330,6 +330,9 @@ namespace ehal::http
             page.replace(F("{{z1_set_temp}}"), String(status.Zone1SetTemperature, 1));
             page.replace(F("{{z2_room_temp}}"), String(status.Zone2RoomTemperature, 1));
             page.replace(F("{{z2_set_temp}}"), String(status.Zone2SetTemperature, 1));
+            page.replace(F("{{dhw_temp}}"), String(status.DhwTemperature, 1));
+            page.replace(F("{{dhw_set_temp}}"), String(status.DhwFlowTemperatureSetPoint, 1));
+            page.replace(F("{{outside_temp}}"), String(status.OutsideTemperature, 1));
 
             page.replace(F("{{sh_consumed}}"), String(status.EnergyConsumedHeating));
             page.replace(F("{{sh_delivered}}"), String(status.EnergyDeliveredHeating));
@@ -341,6 +344,8 @@ namespace ehal::http
             page.replace(F("{{mode_pwr}}"), status.power_as_string());
             page.replace(F("{{mode_op}}"), status.operation_as_string());
             page.replace(F("{{mode_hol}}"), bool_to_emoji(status.HolidayMode));
+            page.replace(F("{{defrost}}"), bool_to_emoji(status.DefrostActive));
+            page.replace(F("{{dhw_boost}}"), bool_to_emoji(status.DhwBoostActive));
             page.replace(F("{{mode_dhw_timer}}"), bool_to_emoji(status.DhwTimerMode));
             page.replace(F("{{mode_heating}}"), status.heating_mode_as_string());
             page.replace(F("{{mode_dhw}}"), status.dhw_mode_as_string());

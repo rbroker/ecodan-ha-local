@@ -237,37 +237,34 @@ namespace ehal
 <br />
 <table>
     <thead>
-        <th colspan="2">Zone 1</th>
+        <th colspan="2">Temperatures</th>
     <thead>
     <tr>
-        <td>Room Temperature:</td>
-        <td>{{z1_room_temp}}&#176;C / {{z1_set_temp}}</td>
+        <td>Zone 1 Room Temperature:</td>
+        <td>{{z1_room_temp}} / {{z1_set_temp}}&#176;C</td>
     </tr>
-    <thead>
-        <th colspan="2">Zone 2</th>
-    <thead>
     <tr>
-        <td>Room Temperature:</td>
-        <td>{{z2_room_temp}}&#176;C / {{z2_set_temp}}</td>
+        <td>Zone 2 Room Temperature:</td>
+        <td>{{z2_room_temp}} / {{z2_set_temp}}&#176;C</td>
+    </tr>
+    <tr>
+        <td>DHW Tank Temperature:</td>
+        <td>{{dhw_temp}} / {{dhw_set_temp}}&#176;C</td>
+    </tr>
+    <tr>
+        <td>Outside:</td>
+        <td>{{outside_temp}}&#176;C</td>
     </tr>
     <thead>
-        <th colspan="2">Efficiency</th>        
+        <th colspan="2">Efficiency (Last 24h)</th>        
     </thead>
     <tr>
-        <td>Heating Consumption:</td>
-        <td>{{sh_consumed}}kWh</td>
-    </tr>
+        <td>Space Heating:</td>
+        <td>{{sh_consumed}}kWh &rarr; {{sh_delivered}}kWh (COP: {{sh_cop}})</td>
+    </tr>    
     <tr>
-        <td>Heating Delivered:</td>
-        <td>{{sh_delivered}}kWh (COP: {{sh_cop}})</td>
-    </tr>
-    <tr>
-        <td>DHW Consumption:</td>
-        <td>{{dhw_consumed}}kWh</td>
-    </tr>
-    <tr>
-        <td>DHW Delivered:</td>
-        <td>{{dhw_delivered}}kWh (COP: {{dhw_cop}})</td>
+        <td>DHW:</td>
+        <td>{{dhw_consumed}}kWh &rarr; {{dhw_delivered}}kWh (COP: {{dhw_cop}})</td>
     </tr>
     <thead>
         <th colspan="2">Status</th>
@@ -277,7 +274,7 @@ namespace ehal
         <td>{{mode_pwr}}</td>
     </tr>
     <tr>
-        <td>Operation:</td>
+        <td>Current Operation:</td>
         <td>{{mode_op}}</td>
     </tr>
     <tr>
@@ -285,15 +282,23 @@ namespace ehal
         <td>{{mode_hol}}</td>
     </tr>
     <tr>
+        <td>Defrost:</td>
+        <td>{{defrost}}</td>
+    </tr>
+    <tr>
+        <td>DHW Boost:</td>
+        <td>{{dhw_boost}}</td>
+    </tr>
+    <tr>
         <td>DHW Timer:</td>
         <td>{{mode_dhw_timer}}</td>
     </tr>
     <tr>
-        <td>Heating:</td>
+        <td>Heating Mode:</td>
         <td>{{mode_heating}}</td>
     </tr>
     <tr>
-        <td>Hot Water (DHW):</td>
+        <td>DHW Mode:</td>
         <td>{{mode_dhw}}</td>
     </tr>
     <tr>
