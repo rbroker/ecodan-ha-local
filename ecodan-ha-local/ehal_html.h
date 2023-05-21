@@ -252,7 +252,7 @@ namespace ehal
         <td>{{dhw_temp}} / {{dhw_set_temp}}&#176;C</td>
     </tr>
     <tr>
-        <td>Outside:</td>
+        <td>Outside Temperature:</td>
         <td>{{outside_temp}}&#176;C</td>
     </tr>
     <thead>
