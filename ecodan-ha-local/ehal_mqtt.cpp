@@ -26,6 +26,7 @@ namespace ehal::mqtt
     enum class SensorType
     {
         POWER,
+        LIVE_POWER,
         FREQUENCY,
         TEMPERATURE,
         COP
@@ -346,6 +347,12 @@ off
             payloadJson[F("dev_cla")] = F("energy");
             break;
 
+        case SensorType::LIVE_POWER:
+            payloadJson[F("unit_of_meas")] = F("kW");
+            payloadJson[F("icon")] = F("mdi:lightning-bolt");
+            payloadJson[F("dev_cla")] = F("energy");
+            break;
+
         case SensorType::FREQUENCY:
             payloadJson[F("unit_of_meas")] = F("Hz");
             payloadJson[F("icon")] = F("mdi:fan");
@@ -424,6 +431,9 @@ off
             anyFailed = true;
 
         if (!publish_ha_binary_sensor_auto_discover(F("mode_dhw_forced")))
+            anyFailed = true;
+
+        if (!publish_ha_float_sensor_auto_discover(F("output_pwr"), SensorType::LIVE_POWER))
             anyFailed = true;
 
         if (!publish_ha_float_sensor_auto_discover(F("legionella_prevention_temp"), SensorType::TEMPERATURE))
@@ -546,6 +556,7 @@ off
         publish_binary_sensor_status(F("mode_defrost"), status.DefrostActive);
         publish_sensor_status<float>(F("compressor_frequency"), status.CompressorFrequency);
         publish_binary_sensor_status(F("mode_dhw_forced"), status.DhwForcedActive);
+        publish_sensor_status<float>(F("output_pwr"), status.OutputPower);
         publish_sensor_status<float>(F("legionella_prevention_temp"), status.LegionellaPreventionSetPoint);
         publish_sensor_status<float>(F("dhw_temp_drop"), status.DhwTemperatureDrop);
         publish_sensor_status<float>(F("outside_temp"), status.OutsideTemperature);

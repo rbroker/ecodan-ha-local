@@ -12,6 +12,7 @@ namespace ehal::hp
 
         bool DefrostActive;
         bool DhwForcedActive;
+        uint8_t OutputPower;
 
         float Zone1SetTemperature;
         float Zone1FlowTemperatureSetPoint;
@@ -44,7 +45,8 @@ namespace ehal::hp
             OFF = 0,
             DHW_ON = 1,
             SH_ON = 2,
-            FROST_PROTECT = 5
+            FROST_PROTECT = 5,
+            LEGIONELLA_PREVENTION = 6
         };
 
         enum class DhwMode : uint8_t
@@ -131,6 +133,8 @@ namespace ehal::hp
                     return F("Space Heating");
                 case OperationMode::FROST_PROTECT:
                     return F("Frost Protection");
+                case OperationMode::LEGIONELLA_PREVENTION:
+                    return F("Legionella Prevention");
                 default:
                     return F("Unknown");
             }

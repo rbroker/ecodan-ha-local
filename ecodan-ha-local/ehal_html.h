@@ -266,6 +266,10 @@ namespace ehal
         <td>DHW:</td>
         <td>{{dhw_consumed}}kWh &rarr; {{dhw_delivered}}kWh (COP: {{dhw_cop}})</td>
     </tr>
+    <tr>
+        <td>Output Power:</td>
+        <td>{{out_pwr}}kW</td>
+    </tr>
     <thead>
         <th colspan="2">Status</th>
     </thead>

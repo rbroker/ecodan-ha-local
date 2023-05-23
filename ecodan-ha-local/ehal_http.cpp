@@ -348,6 +348,8 @@ namespace ehal::http
             else
                 page.replace(F("{{dhw_cop}}"), "0.00");
 
+            page.replace(F("{{out_pwr}}"), String(status.OutputPower));
+
             page.replace(F("{{mode_pwr}}"), status.power_as_string());
             page.replace(F("{{mode_op}}"), status.operation_as_string());
             page.replace(F("{{mode_hol}}"), bool_to_emoji(status.HolidayMode));

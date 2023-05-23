@@ -171,7 +171,7 @@ namespace ehal::hp
             cmdQueue.emplace(MsgType::GET_CMD, GetType::DEFROST_STATE);
             cmdQueue.emplace(MsgType::GET_CMD, GetType::COMPRESSOR_FREQUENCY);
             cmdQueue.emplace(MsgType::GET_CMD, GetType::FORCED_DHW_STATE);
-            // cmdQueue.emplace(MsgType::GET_CMD, GetType::HEATING_POWER ); #TODO #FIXME limited utility?
+            cmdQueue.emplace(MsgType::GET_CMD, GetType::HEATING_POWER);
             cmdQueue.emplace(MsgType::GET_CMD, GetType::TEMPERATURE_CONFIG);
             cmdQueue.emplace(MsgType::GET_CMD, GetType::SH_TEMPERATURE_STATE);
             cmdQueue.emplace(MsgType::GET_CMD, GetType::DHW_TEMPERATURE_STATE_A);
@@ -279,6 +279,7 @@ namespace ehal::hp
                 status.DhwForcedActive = res[7] != 0;
                 break;
             case GetType::HEATING_POWER:
+                status.OutputPower = res[6];
                 break;
             case GetType::TEMPERATURE_CONFIG:
                 status.Zone1SetTemperature = res.get_float16(1);
