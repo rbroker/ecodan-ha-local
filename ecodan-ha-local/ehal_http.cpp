@@ -339,20 +339,20 @@ namespace ehal::http
             if (status.EnergyConsumedHeating > 0.0f)
                 page.replace(F("{{sh_cop}}"), String(status.EnergyDeliveredHeating / status.EnergyConsumedHeating));
             else
-                page.replace(F("{{sh_cop}}"), "?.?");
+                page.replace(F("{{sh_cop}}"), "0.00");
 
             page.replace(F("{{dhw_consumed}}"), String(status.EnergyConsumedDhw));
             page.replace(F("{{dhw_delivered}}"), String(status.EnergyDeliveredDhw));
             if (status.EnergyConsumedDhw > 0.0f)
                 page.replace(F("{{dhw_cop}}"), String(status.EnergyDeliveredDhw / status.EnergyConsumedDhw));
             else
-                page.replace(F("{{dhw_cop}}"), "?.?");
+                page.replace(F("{{dhw_cop}}"), "0.00");
 
             page.replace(F("{{mode_pwr}}"), status.power_as_string());
             page.replace(F("{{mode_op}}"), status.operation_as_string());
             page.replace(F("{{mode_hol}}"), bool_to_emoji(status.HolidayMode));
             page.replace(F("{{defrost}}"), bool_to_emoji(status.DefrostActive));
-            page.replace(F("{{dhw_boost}}"), bool_to_emoji(status.DhwBoostActive));
+            page.replace(F("{{dhw_forced}}"), bool_to_emoji(status.DhwForcedActive));
             page.replace(F("{{mode_dhw_timer}}"), bool_to_emoji(status.DhwTimerMode));
             page.replace(F("{{mode_heating}}"), status.heating_mode_as_string());
             page.replace(F("{{mode_dhw}}"), status.dhw_mode_as_string());

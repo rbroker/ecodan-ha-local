@@ -276,7 +276,7 @@ namespace ehal::hp
                 status.CompressorFrequency = res[1];
                 break;
             case GetType::FORCED_DHW_STATE:
-                status.DhwBoostActive = res[7] != 0;
+                status.DhwForcedActive = res[7] != 0;
                 break;
             case GetType::HEATING_POWER:
                 break;

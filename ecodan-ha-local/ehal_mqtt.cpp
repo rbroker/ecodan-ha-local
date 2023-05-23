@@ -28,7 +28,7 @@ namespace ehal::mqtt
         POWER,
         FREQUENCY,
         TEMPERATURE,
-        OTHER
+        COP
     };
 
     // https://arduinojson.org/v6/how-to/configure-the-serialization-of-floats/#how-to-reduce-the-number-of-decimal-places
@@ -357,6 +357,10 @@ off
             payloadJson[F("dev_cla")] = F("temperature");
             break;
 
+        case SensorType::COP:
+            payloadJson[F("icon")] = F("mdi:home-lightning-bolt");
+            break;
+
         default:
             break;
         }
@@ -419,7 +423,7 @@ off
         if (!publish_ha_float_sensor_auto_discover(F("compressor_frequency"), SensorType::FREQUENCY))
             anyFailed = true;
 
-        if (!publish_ha_binary_sensor_auto_discover(F("mode_dhw_boost")))
+        if (!publish_ha_binary_sensor_auto_discover(F("mode_dhw_forced")))
             anyFailed = true;
 
         if (!publish_ha_float_sensor_auto_discover(F("legionella_prevention_temp"), SensorType::TEMPERATURE))
@@ -482,10 +486,10 @@ off
         if (!publish_ha_float_sensor_auto_discover(F("dhw_temp"), SensorType::TEMPERATURE))
             anyFailed = true;
 
-        if (!publish_ha_float_sensor_auto_discover(F("dhw_cop"), SensorType::OTHER))
+        if (!publish_ha_float_sensor_auto_discover(F("dhw_cop"), SensorType::COP))
             anyFailed = true;
 
-        if (!publish_ha_float_sensor_auto_discover(F("sh_cop"), SensorType::OTHER))
+        if (!publish_ha_float_sensor_auto_discover(F("sh_cop"), SensorType::COP))
             anyFailed = true;
 
         if (!anyFailed)
@@ -541,7 +545,7 @@ off
         std::lock_guard<hp::Status> lock{status};
         publish_binary_sensor_status(F("mode_defrost"), status.DefrostActive);
         publish_sensor_status<float>(F("compressor_frequency"), status.CompressorFrequency);
-        publish_binary_sensor_status(F("mode_dhw_boost"), status.DhwBoostActive);
+        publish_binary_sensor_status(F("mode_dhw_forced"), status.DhwForcedActive);
         publish_sensor_status<float>(F("legionella_prevention_temp"), status.LegionellaPreventionSetPoint);
         publish_sensor_status<float>(F("dhw_temp_drop"), status.DhwTemperatureDrop);
         publish_sensor_status<float>(F("outside_temp"), status.OutsideTemperature);

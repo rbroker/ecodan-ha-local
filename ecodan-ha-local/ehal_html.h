@@ -286,8 +286,8 @@ namespace ehal
         <td>{{defrost}}</td>
     </tr>
     <tr>
-        <td>DHW Boost:</td>
-        <td>{{dhw_boost}}</td>
+        <td>DHW Forced:</td>
+        <td>{{dhw_forced}}</td>
     </tr>
     <tr>
         <td>DHW Timer:</td>

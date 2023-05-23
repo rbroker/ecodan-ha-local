@@ -11,7 +11,7 @@ namespace ehal::hp
         bool Initialized = false;
 
         bool DefrostActive;
-        bool DhwBoostActive;
+        bool DhwForcedActive;
 
         float Zone1SetTemperature;
         float Zone1FlowTemperatureSetPoint;
