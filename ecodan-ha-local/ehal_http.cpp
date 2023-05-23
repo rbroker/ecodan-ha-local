@@ -336,10 +336,17 @@ namespace ehal::http
 
             page.replace(F("{{sh_consumed}}"), String(status.EnergyConsumedHeating));
             page.replace(F("{{sh_delivered}}"), String(status.EnergyDeliveredHeating));
-            page.replace(F("{{sh_cop}}"), String(status.EnergyDeliveredHeating / status.EnergyConsumedHeating));
+            if (status.EnergyConsumedHeating > 0.0f)
+                page.replace(F("{{sh_cop}}"), String(status.EnergyDeliveredHeating / status.EnergyConsumedHeating));
+            else
+                page.replace(F("{{sh_cop}}"), "?.?");
+
             page.replace(F("{{dhw_consumed}}"), String(status.EnergyConsumedDhw));
             page.replace(F("{{dhw_delivered}}"), String(status.EnergyDeliveredDhw));
-            page.replace(F("{{dhw_cop}}"), String(status.EnergyDeliveredDhw / status.EnergyConsumedDhw));
+            if (status.EnergyConsumedDhw > 0.0f)
+                page.replace(F("{{dhw_cop}}"), String(status.EnergyDeliveredDhw / status.EnergyConsumedDhw));
+            else
+                page.replace(F("{{dhw_cop}}"), "?.?");
 
             page.replace(F("{{mode_pwr}}"), status.power_as_string());
             page.replace(F("{{mode_op}}"), status.operation_as_string());

@@ -27,7 +27,8 @@ namespace ehal::mqtt
     {
         POWER,
         FREQUENCY,
-        TEMPERATURE
+        TEMPERATURE,
+        OTHER
     };
 
     // https://arduinojson.org/v6/how-to/configure-the-serialization-of-floats/#how-to-reduce-the-number-of-decimal-places
@@ -481,6 +482,12 @@ off
         if (!publish_ha_float_sensor_auto_discover(F("dhw_temp"), SensorType::TEMPERATURE))
             anyFailed = true;
 
+        if (!publish_ha_float_sensor_auto_discover(F("dhw_cop"), SensorType::OTHER))
+            anyFailed = true;
+
+        if (!publish_ha_float_sensor_auto_discover(F("sh_cop"), SensorType::OTHER))
+            anyFailed = true;
+
         if (!anyFailed)
         {
             needsAutoDiscover = false;
@@ -555,6 +562,8 @@ off
         publish_sensor_status<float>(F("z1_room_temp"), status.Zone1RoomTemperature);
         publish_sensor_status<float>(F("z2_room_temp"), status.Zone2RoomTemperature);
         publish_sensor_status<float>(F("dhw_temp"), status.DhwTemperature);
+        publish_sensor_status<float>(F("dhw_cop"), status.EnergyConsumedDhw > 0.0f ? status.EnergyDeliveredDhw / status.EnergyConsumedDhw : 0.0f);
+        publish_sensor_status<float>(F("sh_cop"), status.EnergyConsumedHeating > 0.0f ? status.EnergyDeliveredHeating / status.EnergyConsumedHeating : 0.0f);
     }
 
     bool connect()

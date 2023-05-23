@@ -286,7 +286,7 @@ namespace ehal::hp
                 status.Zone1FlowTemperatureSetPoint = res.get_float16(5);
                 status.Zone2FlowTemperatureSetPoint = res.get_float16(7);
                 status.LegionellaPreventionSetPoint = res.get_float16(9);
-                status.DhwTemperatureDrop = res.get_float8(11);
+                status.DhwTemperatureDrop = res.get_float8_v2(11);
                 status.MaximumFlowTemperature = res.get_float8(12);
                 status.MinimumFlowTemperature = res.get_float8(13);
                 break;

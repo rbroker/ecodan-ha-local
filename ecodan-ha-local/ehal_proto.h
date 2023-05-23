@@ -250,6 +250,12 @@ namespace ehal::hp
             return (value / 2) - 40.0f;
         }
 
+        float get_float8_v2(size_t index)
+        {
+            float value = payload()[index];
+            return (value - 40.0f) / 2;
+        }
+
         void set_float16(float value, size_t index)
         {
             uint16_t u16 = uint16_t(value * 100.0f);
