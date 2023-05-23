@@ -244,18 +244,21 @@ namespace ehal::hp
             return value /= 100.0f;
         }
 
+        // Used for most single-byte floating point values
         float get_float8(size_t index)
         {
             float value = payload()[index];
             return (value / 2) - 40.0f;
         }
 
+        // Used for DHW temperature drop threshold
         float get_float8_v2(size_t index)
         {
             float value = payload()[index];
             return (value - 40.0f) / 2;
         }
 
+        // Used for min/max SH flow temperature
         float get_float8_v3(size_t index)
         {
             float value = payload()[index];
