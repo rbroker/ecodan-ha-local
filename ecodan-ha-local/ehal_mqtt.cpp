@@ -664,6 +664,10 @@ off
         {
             if (periodic_update_tick())
             {
+                // If homeassistant restarts, we'll need to re-publish auto-discovery
+                if (!mqttClient.connected())                
+                    needsAutoDiscover = true;
+
                 // Re-establish MQTT connection if we need to.
                 connect();
 
