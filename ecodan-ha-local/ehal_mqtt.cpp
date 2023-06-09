@@ -366,6 +366,7 @@ off
 
         case SensorType::COP:
             payloadJson[F("icon")] = F("mdi:home-lightning-bolt");
+            payloadJson[F("dev_cla")] = F("power_factor");
             break;
 
         default:
