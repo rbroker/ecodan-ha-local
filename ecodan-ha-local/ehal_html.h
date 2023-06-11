@@ -192,6 +192,10 @@ namespace ehal
         <td>{{device_total_psram}}</td>
     </tr>
     <tr>
+        <td>Device CPU Temperature:</td>
+        <td>{{device_cpu_temp}}&#176;C</td>
+    </tr>
+    <tr>
         <td>WiFi HostName:</td>
         <td>{{wifi_hostname}}</td>
     </tr>

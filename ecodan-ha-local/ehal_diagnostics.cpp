@@ -1,3 +1,4 @@
+#include "esp_err.h"
 #include "ehal_diagnostics.h"
 #include "ehal_thirdparty.h"
 
@@ -6,6 +7,8 @@
 #include <cstdio>
 #include <deque>
 #include <mutex>
+
+#include <driver/temp_sensor.h>
 
 namespace ehal
 {
@@ -94,4 +97,17 @@ namespace ehal
 
         return jsonOut;
     }
+    
+    float get_cpu_temperature()
+    {
+        if (temp_sensor_start() != ESP_OK)
+            return 0.0f;
+
+        float temp;
+        temp_sensor_read_celsius(&temp);
+        temp_sensor_stop();
+
+        return temp;
+    }
+
 } // namespace ehal

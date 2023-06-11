@@ -291,6 +291,7 @@ namespace ehal::http
         page.replace(F("{{device_min_heap}}"), String(ESP.getMinFreeHeap()));
         page.replace(F("{{device_free_psram}}"), String(ESP.getFreePsram()));
         page.replace(F("{{device_total_psram}}"), String(ESP.getPsramSize()));
+        page.replace(F("{{device_cpu_temp}}"), String(get_cpu_temperature()));
 
         page.replace(F("{{wifi_hostname}}"), WiFi.getHostname());
         page.replace(F("{{wifi_ip}}"), WiFi.localIP().toString());
@@ -418,18 +419,18 @@ namespace ehal::http
         }
     }
 
-    void handle_redirect(const char* uri)
+    void handle_redirect()
     {
         String page{F(PAGE_TEMPLATE)};
         page.replace(F("{{PAGE_SCRIPT}}"), F("src='/redirect.js'"));
         page.replace(F("{{PAGE_BODY}}"), F(BODY_TEMPLATE_REDIRECT));
-        page.replace(F("{{uri}}"), uri);
         server.send(200, F("text/html"), page);
     }
 
     void handle_redirect_js()
     {
         String js{F(SCRIPT_REDIRECT)};
+        js.replace(F("{{uri}}"), "/");
         server.send(200, F("text/javascript"), js);
     }
 
@@ -461,7 +462,7 @@ namespace ehal::http
             }
         }
 
-        handle_redirect("/");
+        handle_redirect();
     }
 
     void handle_milligram_css()

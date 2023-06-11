@@ -609,6 +609,8 @@ off
 
         if (mqttClient.connected())
         {
+            needsAutoDiscover = true;
+
             String tempCmdTopic = config.MqttTopic + "/" + unique_entity_name(F("climate_control")) + F("/temp_cmd");
             if (!mqttClient.subscribe(tempCmdTopic.c_str()))
             {
@@ -666,8 +668,11 @@ off
             if (periodic_update_tick())
             {
                 // If homeassistant restarts, we'll need to re-publish auto-discovery
-                if (!mqttClient.connected())                
+                if (!mqttClient.connected())
+                {
+                    log_web(F("MQTT disconnect detected during periodic update check!"));
                     needsAutoDiscover = true;
+                }
 
                 // Re-establish MQTT connection if we need to.
                 connect();
