@@ -100,12 +100,16 @@ namespace ehal
     
     float get_cpu_temperature()
     {
-        if (temp_sensor_start() != ESP_OK)
-            return 0.0f;
+        static bool started = false;
+
+        if (!started)
+        {
+            temp_sensor_start();
+            started = true;            
+        }
 
         float temp;
-        temp_sensor_read_celsius(&temp);
-        temp_sensor_stop();
+        temp_sensor_read_celsius(&temp);        
 
         return temp;
     }
