@@ -520,7 +520,7 @@ off
         const auto& config = config_instance();
         String stateTopic = config.MqttTopic + "/" + unique_entity_name(F("climate_control")) + F("/state");
         if (!publish_mqtt(stateTopic, json))
-            log_web(F("Failed to publish MQTT state for: %s"), unique_entity_name(F("climate_control")));
+            log_web(F("Failed to publish MQTT state for: %s"), unique_entity_name(F("climate_control")).c_str());
     }
 
     void publish_binary_sensor_status(const String& name, bool on)
@@ -529,7 +529,7 @@ off
         const auto& config = config_instance();
         String stateTopic = config.MqttTopic + "/" + unique_entity_name(name) + F("/state");
         if (!publish_mqtt(stateTopic, state))
-            log_web(F("Failed to publish MQTT state for: %s"), unique_entity_name(name));
+            log_web(F("Failed to publish MQTT state for: %s"), unique_entity_name(name).c_str());
     }
 
     template <typename T>
@@ -538,11 +538,14 @@ off
         const auto& config = config_instance();
         String stateTopic = config.MqttTopic + "/" + unique_entity_name(name) + F("/state");
         if (!publish_mqtt(stateTopic, String(value)))
-            log_web(F("Failed to publish MQTT state for: %s"), unique_entity_name(name));
+            log_web(F("Failed to publish MQTT state for: %s"), unique_entity_name(name).c_str());
     }
 
     void publish_entity_state_updates()
     {
+        if (!mqttClient.connected())
+            return;
+
         publish_climate_status();
 
         auto& status = hp::get_status();
@@ -653,7 +656,7 @@ off
                 }
 
                 // Re-establish MQTT connection if we need to.
-                connect();
+                connect();                
 
                 // Publish homeassistant auto-discovery messages if we need to.
                 publish_homeassistant_auto_discover();
