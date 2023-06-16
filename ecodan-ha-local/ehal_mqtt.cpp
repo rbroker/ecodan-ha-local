@@ -21,7 +21,7 @@ namespace ehal::mqtt
 
     bool needsAutoDiscover = true;
     WiFiClient espClient;
-    PubSubClient mqttClient(espClient);
+    MQTTClient mqttClient(4096);
 
     enum class SensorType
     {
@@ -128,50 +128,45 @@ off
         }
     }
 
-    void mqtt_callback(const char* topic, byte* payload, uint length)
+    void mqtt_callback(String& topic, String& payload)
     {
         auto& config = config_instance();
         String uniqueName = unique_entity_name(F("climate_control"));
         String tempCmdTopic = config.MqttTopic + "/" + uniqueName + F("/temp_cmd");
-        String modeCmdTopic = config.MqttTopic + "/" + uniqueName + F("/mode_cmd");
-        std::string payloadStr{reinterpret_cast<const char*>(payload), length}; // Arduino string can't construct from ptr+size.
+        String modeCmdTopic = config.MqttTopic + "/" + uniqueName + F("/mode_cmd");        
 
-        log_web(F("MQTT topic received: %s: '%s'"), topic, payloadStr.c_str());
+        log_web(F("MQTT topic received: %s: '%s'"), topic.c_str(), payload.c_str());
         if (tempCmdTopic == topic)
         {
-            on_z1_temperature_set_command(payloadStr.c_str());
+            on_z1_temperature_set_command(payload);
             publish_climate_status();
         }
         else if (modeCmdTopic == topic)
         {
-            on_mode_set_command(payloadStr.c_str());
+            on_mode_set_command(payload);
         }
     }
 
     String get_connection_error_string()
     {
-        switch (mqttClient.state())
+        switch (mqttClient.lastError())
         {
-        case MQTT_CONNECTION_TIMEOUT:
-            return F("MQTT_CONNECTION_TIMEOUT");
-        case MQTT_CONNECTION_LOST:
-            return F("MQTT_CONNECTION_LOST");
-        case MQTT_CONNECT_FAILED:
-            return F("MQTT_CONNECT_FAILED");
-        case MQTT_DISCONNECTED:
-            return F("MQTT_DISCONNECTED");
-        case MQTT_CONNECTED:
-            return F("MQTT_CONNECTED");
-        case MQTT_CONNECT_BAD_PROTOCOL:
-            return F("MQTT_CONNECT_BAD_PROTOCOL");
-        case MQTT_CONNECT_BAD_CLIENT_ID:
-            return F("MQTT_CONNECT_BAD_CLIENT_ID");
-        case MQTT_CONNECT_UNAVAILABLE:
-            return F("MQTT_CONNECT_UNAVAILABLE");
-        case MQTT_CONNECT_BAD_CREDENTIALS:
-            return F("MQTT_CONNECT_BAD_CREDENTIALS");
-        case MQTT_CONNECT_UNAUTHORIZED:
-            return F("MQTT_CONNECT_UNAUTHORIZED");
+        case LWMQTT_NETWORK_FAILED_CONNECT:
+            return F("LWMQTT_NETWORK_FAILED_CONNECT");
+        case LWMQTT_NETWORK_TIMEOUT:
+            return F("LWMQTT_NETWORK_TIMEOUT");
+        case LWMQTT_NETWORK_FAILED_READ:
+            return F("LWMQTT_NETWORK_FAILED_READ");
+        case LWMQTT_NETWORK_FAILED_WRITE:
+            return F("LWMQTT_NETWORK_FAILED_WRITE");
+        case LWMQTT_MISSING_OR_WRONG_PACKET:
+            return F("LWMQTT_MISSING_OR_WRONG_PACKET");
+        case LWMQTT_CONNECTION_DENIED:
+            return F("LWMQTT_CONNECTION_DENIED");
+        case LWMQTT_FAILED_SUBSCRIPTION:
+            return F("LWMQTT_FAILED_SUBSCRIPTION");
+        case LWMQTT_PONG_TIMEOUT:
+            return F("LWMQTT_PONG_TIMEOUT");        
         default:
             return F("Unknown");
         }
@@ -225,9 +220,7 @@ off
 
     bool publish_mqtt(const String& topic, const String& payload, bool retain = false)
     {
-        mqttClient.beginPublish(topic.c_str(), payload.length(), retain);
-        mqttClient.print(payload);
-        return mqttClient.endPublish();
+        return mqttClient.publish(topic, payload, retain, static_cast<int>(LWMQTT_QOS1));
     }
 
     bool publish_mqtt(const String& topic, const DynamicJsonDocument& json, bool retain = false)
@@ -612,7 +605,7 @@ off
             needsAutoDiscover = true;
 
             String tempCmdTopic = config.MqttTopic + "/" + unique_entity_name(F("climate_control")) + F("/temp_cmd");
-            if (!mqttClient.subscribe(tempCmdTopic.c_str()))
+            if (!mqttClient.subscribe(tempCmdTopic))
             {
                 log_web(F("Failed to subscribe to temperature command topic!"));
                 return false;
@@ -635,29 +628,14 @@ off
         }
 
         auto& config = config_instance();
-        mqttClient.setKeepAlive(15);
-        mqttClient.setServer(config.MqttServer.c_str(), config.MqttPort);
-        mqttClient.setCallback(mqtt_callback);
-
-        // (At least) the first attempt to connect MQTT with valid credentials always seems
-        // to fail, so
-        for (int i = 0; i < 5; ++i)
-        {
-            if (!connect())
-            {
-                std::this_thread::sleep_for(std::chrono::seconds(1));
-            }
-            else
-            {
-                break;
-            }
+        mqttClient.begin(config.MqttServer.c_str(), config.MqttPort, espClient);
+        mqttClient.onMessage(mqtt_callback);       
+        
+        if (connect())
+        {        
+            publish_homeassistant_auto_discover();            
         }
-
-        if (mqttClient.connected())
-        {
-            publish_homeassistant_auto_discover();
-        }
-
+      
         return true;
     }
 
