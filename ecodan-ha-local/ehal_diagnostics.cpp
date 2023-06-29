@@ -8,7 +8,12 @@
 #include <deque>
 #include <mutex>
 
+// Comment out the line below, if the temp_sensor.h file is not available in your environment.
+#define FEATURE_CPU_TEMPERATURE_DIAGNOSTIC
+
+#if defined(FEATURE_CPU_TEMPERATURE_DIAGNOSTIC)
 #include <driver/temp_sensor.h>
+#endif
 
 namespace ehal
 {
@@ -100,6 +105,7 @@ namespace ehal
     
     float get_cpu_temperature()
     {
+#if defined(FEATURE_CPU_TEMPERATURE_DIAGNOSTIC)
         static bool started = false;
 
         if (!started)
@@ -112,6 +118,9 @@ namespace ehal
         temp_sensor_read_celsius(&temp);        
 
         return temp;
+#else
+        return 0.0f;
+#endif
     }
 
 } // namespace ehal
