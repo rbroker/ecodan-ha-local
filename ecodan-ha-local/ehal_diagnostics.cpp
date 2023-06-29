@@ -8,10 +8,7 @@
 #include <deque>
 #include <mutex>
 
-// Comment out the line below, if the temp_sensor.h file is not available in your environment.
-#define FEATURE_CPU_TEMPERATURE_DIAGNOSTIC
-
-#if defined(FEATURE_CPU_TEMPERATURE_DIAGNOSTIC)
+#if CONFIG_IDF_TARGET_ESP32S2
 #include <driver/temp_sensor.h>
 #endif
 
@@ -105,7 +102,7 @@ namespace ehal
     
     float get_cpu_temperature()
     {
-#if defined(FEATURE_CPU_TEMPERATURE_DIAGNOSTIC)
+#if CONFIG_IDF_TARGET_ESP32S2
         static bool started = false;
 
         if (!started)
