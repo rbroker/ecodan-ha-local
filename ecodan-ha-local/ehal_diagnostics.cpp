@@ -8,7 +8,7 @@
 #include <deque>
 #include <mutex>
 
-#if CONFIG_IDF_TARGET_ESP32S2
+#if CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32C3
 #include <driver/temp_sensor.h>
 #endif
 
@@ -102,7 +102,7 @@ namespace ehal
     
     float get_cpu_temperature()
     {
-#if CONFIG_IDF_TARGET_ESP32S2
+#if CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32C3
         static bool started = false;
 
         if (!started)
