@@ -1,6 +1,7 @@
 #include "esp_err.h"
 #include "ehal_diagnostics.h"
 #include "ehal_thirdparty.h"
+#include "psram_alloc.h"
 
 #include "time.h"
 
@@ -15,7 +16,7 @@
 namespace ehal
 {
     std::mutex diagnosticRingbufferLock;
-    std::deque<String> diagnosticRingbuffer;
+    psram::deque diagnosticRingbuffer;
 
 #define MAX_MESSAGE_LENGTH 255U
 #define MAX_NUM_ELEMENTS 32U    
@@ -87,8 +88,8 @@ namespace ehal
         {
             std::lock_guard<std::mutex> lock(diagnosticRingbufferLock);
 
-            std::deque<String>::const_iterator end = std::end(diagnosticRingbuffer);
-            for (std::deque<String>::const_iterator it = std::begin(diagnosticRingbuffer); it != end; ++it)
+            psram::deque::const_iterator end = std::end(diagnosticRingbuffer);
+            for (psram::deque::const_iterator it = std::begin(diagnosticRingbuffer); it != end; ++it)
             {
                 msg.add(*it);
             }

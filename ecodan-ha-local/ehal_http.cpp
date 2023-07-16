@@ -161,7 +161,7 @@ namespace ehal::http
             page.replace(F("{{dump_pkt}}"), F("checked"));
         else
             page.replace(F("{{dump_pkt}}"), "");
-        
+
         page.replace(F("{{wifi_ssid}}"), config.WifiSsid);
         page.replace(F("{{wifi_pw}}"), config.WifiPassword);
         page.replace(F("{{hostname}}"), config.HostName);
@@ -194,8 +194,8 @@ namespace ehal::http
 
         if (server.hasArg(F("dump_pkt")))
             config.DumpPackets = true;
-        else        
-            config.DumpPackets = false;        
+        else
+            config.DumpPackets = false;
 
         config.WifiSsid = server.arg(F("wifi_ssid"));
         config.WifiPassword = server.arg(F("wifi_pw"));

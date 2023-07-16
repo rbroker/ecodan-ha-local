@@ -142,9 +142,9 @@ void setup()
 }
 
 void loop()
-{    
+{
     try
-    {    
+    {
         ehal::http::handle_loop();
 
         if (heatpumpInitialized)
@@ -153,9 +153,9 @@ void loop()
         if (mqttInitialized)
             ehal::mqtt::handle_loop();
 
-        update_time(/* force =*/false);   
-        update_status_led();    
-        delay(1);  
+        update_time(/* force =*/false);
+        update_status_led();
+        delay(1);
     }
     catch (std::exception const& ex)
     {
