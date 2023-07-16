@@ -133,7 +133,7 @@ off
         auto& config = config_instance();
         String uniqueName = unique_entity_name(F("climate_control"));
         String tempCmdTopic = config.MqttTopic + "/" + uniqueName + F("/temp_cmd");
-        String modeCmdTopic = config.MqttTopic + "/" + uniqueName + F("/mode_cmd");        
+        String modeCmdTopic = config.MqttTopic + "/" + uniqueName + F("/mode_cmd");
 
         log_web(F("MQTT topic received: %s: '%s'"), topic.c_str(), payload.c_str());
         if (tempCmdTopic == topic)
@@ -166,7 +166,7 @@ off
         case LWMQTT_FAILED_SUBSCRIPTION:
             return F("LWMQTT_FAILED_SUBSCRIPTION");
         case LWMQTT_PONG_TIMEOUT:
-            return F("LWMQTT_PONG_TIMEOUT");        
+            return F("LWMQTT_PONG_TIMEOUT");
         default:
             return F("Unknown");
         }
@@ -191,6 +191,16 @@ off
 
         auto now = std::chrono::steady_clock::now();
         static auto last_attempt = now + std::chrono::seconds(35);
+        static auto last_discover = now;
+
+        // Periodically re-publish discovery messages, just in case the broker missed them.
+        // This appears to happen if the MQTT connection is re-established after home assistant
+        // is restarted, and is still initializing.
+        if (now - last_discover > std::chrono::minutes(5))
+        {
+            last_discover = now;
+            needsAutoDiscover = true;
+        }
 
         if (now - last_attempt < std::chrono::seconds(30))
             return false;
@@ -632,13 +642,13 @@ off
 
         auto& config = config_instance();
         mqttClient.begin(config.MqttServer.c_str(), config.MqttPort, espClient);
-        mqttClient.onMessage(mqtt_callback);       
-        
+        mqttClient.onMessage(mqtt_callback);
+
         if (connect())
-        {        
-            publish_homeassistant_auto_discover();            
+        {
+            publish_homeassistant_auto_discover();
         }
-      
+
         return true;
     }
 
@@ -656,7 +666,7 @@ off
                 }
 
                 // Re-establish MQTT connection if we need to.
-                connect();                
+                connect();
 
                 // Publish homeassistant auto-discovery messages if we need to.
                 publish_homeassistant_auto_discover();
