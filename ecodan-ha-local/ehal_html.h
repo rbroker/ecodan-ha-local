@@ -88,7 +88,7 @@ namespace ehal
     </div>
     <div class="row">
         <label class="column column-25" for="wifi_pw">WiFi Password:</label>
-        <input class="column column-75" type="password" id="wifi_pw" name="wifi_pw" minlength="15" value="{{wifi_pw}}" required />
+        <input class="column column-75" type="password" id="wifi_pw" name="wifi_pw" minlength="1" value="{{wifi_pw}}" required />
     </div>
     <div class="row">
         <label class="column column-25" for="hostname">Hostname:</label>
