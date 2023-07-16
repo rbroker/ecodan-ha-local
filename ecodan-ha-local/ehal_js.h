@@ -11,7 +11,7 @@ namespace ehal
         let selected = document.getElementById('wifi_ssid');
         for (let i = 0; i < wifi.length; ++i) {
             if (wifi[i].ssid != selected.value)
-                continue;            
+                continue;
 
             let el = document.getElementById('ssi');
             el.className = 'signal-icon';
@@ -53,11 +53,14 @@ namespace ehal
                     option.value = jsonResponse.wifi[i].ssid;
                     option.textContent = jsonResponse.wifi[i].ssid;
                     if (jsonResponse.wifi[i].ssid == '{{wifi_ssid}}') {
-                        option.selected = true;                                              
+                        option.selected = true;
                     }
                     select.appendChild(option);
-                }                
+                }
                 update_ssi();
+            } else if (this.status == 202) {
+                window.setTimeout(inject_ssid_list, 500);
+                return;
             } else {
                 select.disabled = true;
             }
@@ -113,12 +116,12 @@ namespace ehal
                 let el = document.getElementById('update');
                 el.value = Math.round((e.loaded / e.total) * 100) + '%';
             }, false);
-            xhr.upload.addEventListener('load', function(event) {            
+            xhr.upload.addEventListener('load', function(event) {
                 let el = document.getElementById('update');
                 el.value = "Done!";
             }, false);
             xhr.addEventListener('readystatechange', function(event) {
-                if (event.target.readyState == 4 && event.target.responseText) {                    
+                if (event.target.readyState == 4 && event.target.responseText) {
                     var doc = document.open('text/html', 'replace');
                     doc.write(event.target.responseText);
                     doc.close();

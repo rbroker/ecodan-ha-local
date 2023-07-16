@@ -237,27 +237,45 @@ namespace ehal::http
 
     void handle_query_ssid_list()
     {
-        DynamicJsonDocument json(1024);
-        JsonArray wifi = json.createNestedArray(F("wifi"));
-        String jsonOut;
+        int16_t result = WiFi.scanComplete();
 
-        log_web(F("Starting WiFi scan..."));
-        int count = WiFi.scanNetworks();
-        log_web(F("Wifi Scan Result: %s"), String(count).c_str());
-
-        for (int i = 0; i < count; ++i)
+        if (result == WIFI_SCAN_RUNNING)
         {
-            log_web(F("SSID: %s"), WiFi.SSID(i).c_str());
-            JsonObject obj = wifi.createNestedObject();
-            obj[F("ssid")] = WiFi.SSID(i);
-            obj[F("rssi")] = WiFi.RSSI(i);
+            log_web(F("WiFi scan in progres..."));
+            server.send(202, F("text/plain"), "");
         }
+        else if (result == WIFI_SCAN_FAILED)
+        {
+            log_web(F("Starting WiFi scan..."));
+            WiFi.scanNetworks(/* async = */ true);
+            server.send(202, F("text/plain"), "");
+        }
+        else if (result >= 0)
+        {
+            log_web(F("Wifi Scan Result: %u"), result);
 
-        serializeJson(json, jsonOut);
+            DynamicJsonDocument json(8192);
+            JsonArray wifi = json.createNestedArray(F("wifi"));
+            String jsonOut;
 
-        WiFi.scanDelete();
+            for (int i = 0; i < result; ++i)
+            {
+                log_web(F("SSID: %s"), WiFi.SSID(i).c_str());
+                JsonObject obj = wifi.createNestedObject();
+                obj[F("ssid")] = WiFi.SSID(i);
+                obj[F("rssi")] = WiFi.RSSI(i);
+            }
 
-        server.send(200, F("text/plain"), jsonOut);
+            serializeJson(json, jsonOut);
+
+            WiFi.scanDelete();
+            server.send(200, F("text/plain"), jsonOut);
+        }
+        else
+        {
+            log_web(F("Unexpected WIFI scan result: %u"), result);
+            server.send(500, F("text/plain"), "");
+        }
     }
 
     void handle_query_life()
