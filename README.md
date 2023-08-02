@@ -14,6 +14,7 @@ Uses the CN105 connector on the Cased Flow Temp Controller (FTC6 in my setup) to
 - ESP32-compatible development board (I'm using a LOLIN S2 Mini)
   - Will almost certainly exceed the memory budgets on an ESP8266, as I've not been super careful about memory usage.
 - CN105 female connector + pigtails, as described [here](https://github.com/SwiCago/HeatPump#Demo-Circuit).
+  - Note: The software is configured to use Serial UART1 on the ESP32, explicitly labelled TX/RX pins on a pinout will usually be pre-assigned to UART0.
 
 ## Library Dependencies
 - ArduinoJson v6.21.2
