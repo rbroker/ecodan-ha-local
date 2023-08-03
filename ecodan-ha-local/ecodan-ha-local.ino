@@ -36,12 +36,16 @@ bool initialize_wifi_access_point()
                 ehal::log_web(F("Failed to configure hostname from saved settings!"));
             }
         }
+
         WiFi.begin(config.WifiSsid.c_str(), config.WifiPassword.c_str());
 
-        for (int i = 0; i < 10; ++i)
+        // Wait up to 300s for WiFi connection to be established.
+        for (int i = 0; i < 600; ++i)
         {
             if (WiFi.isConnected())
                 break;
+
+            WiFi.reconnect();
 
             ehal::log_web(F("Waiting 500ms for WiFi connection..."));
             std::this_thread::sleep_for(std::chrono::milliseconds(500));
@@ -52,6 +56,7 @@ bool initialize_wifi_access_point()
             ehal::log_web(F("Couldn't connect to WiFi network on boot, falling back to AP mode."));
             config.WifiPassword.clear();
             config.WifiSsid.clear();
+            WiFi.disconnect();
         }
     }
 
