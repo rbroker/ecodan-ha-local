@@ -130,20 +130,31 @@ off
 
     void mqtt_callback(String& topic, String& payload)
     {
-        auto& config = config_instance();
-        String uniqueName = unique_entity_name(F("climate_control"));
-        String tempCmdTopic = config.MqttTopic + "/" + uniqueName + F("/temp_cmd");
-        String modeCmdTopic = config.MqttTopic + "/" + uniqueName + F("/mode_cmd");
+        try
+        {
+            auto& config = config_instance();
+            String uniqueName = unique_entity_name(F("climate_control"));
+            String tempCmdTopic = config.MqttTopic + "/" + uniqueName + F("/temp_cmd");
+            String modeCmdTopic = config.MqttTopic + "/" + uniqueName + F("/mode_cmd");
 
-        log_web(F("MQTT topic received: %s: '%s'"), topic.c_str(), payload.c_str());
-        if (tempCmdTopic == topic)
+            log_web(F("MQTT topic received: %s: '%s'"), topic.c_str(), payload.c_str());
+            if (tempCmdTopic == topic)
+            {
+                on_z1_temperature_set_command(payload);
+                std::thread async_publish([]() 
+                {                                
+                    publish_climate_status();
+                });
+                async_publish.detach();
+            }
+            else if (modeCmdTopic == topic)
+            {
+                on_mode_set_command(payload);
+            }
+        } 
+        catch (std::exception const& ex)
         {
-            on_z1_temperature_set_command(payload);
-            publish_climate_status();
-        }
-        else if (modeCmdTopic == topic)
-        {
-            on_mode_set_command(payload);
+            log_web(F("Exception on MQTT callback: %s"), ex.what());
         }
     }
 

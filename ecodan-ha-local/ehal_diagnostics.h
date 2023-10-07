@@ -10,4 +10,8 @@ namespace ehal
     float get_cpu_temperature();
 
     String logs_as_json();
+
+    void init_watchdog();
+    void ping_watchdog();
+    void add_thread_to_watchdog();
 } // namespace ehal

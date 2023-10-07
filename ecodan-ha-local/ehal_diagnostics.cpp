@@ -12,6 +12,7 @@
 
 #if CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32C3
 #include <driver/temp_sensor.h>
+#include <esp_task_wdt.h>
 #endif
 
 namespace ehal
@@ -43,12 +44,12 @@ namespace ehal
         std::unique_lock<std::mutex> lock(diagnosticRingbufferLock, std::try_to_lock);
 
         auto start = std::chrono::steady_clock::now();
-        while (!lock.owns_lock() && (std::chrono::steady_clock::now() - start) < std::chrono::seconds(10))
+        while (!lock && (std::chrono::steady_clock::now() - start) < std::chrono::seconds(10))
         {
             lock.try_lock();
         }
 
-        if (!lock.owns_lock())
+        if (!lock)
             return;
 
         if (diagnosticRingbuffer.size() > MAX_NUM_ELEMENTS)
@@ -83,12 +84,12 @@ namespace ehal
 
             std::unique_lock<std::mutex> lock(diagnosticRingbufferLock, std::try_to_lock);
 
-            while (!lock.owns_lock() && (std::chrono::steady_clock::now() - log_time) < std::chrono::seconds(10))
+            while (!lock && (std::chrono::steady_clock::now() - log_time) < std::chrono::seconds(10))
             {
                 lock.try_lock();
             }
 
-            if (!lock.owns_lock())
+            if (!lock)
                 return;
 
             if (diagnosticRingbuffer.size() > MAX_NUM_ELEMENTS)
@@ -139,4 +140,24 @@ namespace ehal
 #endif
     }
 
+    void init_watchdog()
+    {
+#if CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32C3
+        esp_task_wdt_init(30, true); // Reset the board if the watchdog timer isn't reset every 30s.
+#endif
+    }
+
+    void add_thread_to_watchdog()
+    {
+#if CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32C3
+        esp_task_wdt_add(nullptr);
+#endif
+    }
+
+    void ping_watchdog()
+    {
+#if CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32C3
+        esp_task_wdt_reset();
+#endif
+    }
 } // namespace ehal

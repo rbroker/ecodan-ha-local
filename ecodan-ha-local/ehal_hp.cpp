@@ -244,7 +244,7 @@ namespace ehal::hp
         cmd[1] = SET_SETTINGS_FLAG_ZONE_TEMPERATURE;
         cmd[2] = static_cast<uint8_t>(SetZone::ZONE_1);
         cmd.set_float16(newTemp, 10);
-
+        
         {
             std::lock_guard<std::mutex>{cmdQueueMutex};
             cmdQueue.emplace(std::move(cmd));
@@ -370,10 +370,14 @@ namespace ehal::hp
 
     void serial_rx_thread()
     {
+        ehal::add_thread_to_watchdog();
+
         while (true)
         {
             try
             {
+                ehal::ping_watchdog();
+
                 Message res;
                 if (!serial_rx(res))
                 {

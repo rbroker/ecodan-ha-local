@@ -109,6 +109,44 @@ void update_status_led()
     }
 }
 
+void log_last_reset_reason()
+{
+    auto reason = esp_reset_reason();        
+    switch (reason)
+    {
+        case ESP_RST_POWERON:
+            ehal::log_web(F("Reset due to power-on event."));
+            break;        
+        case ESP_RST_SW:
+            ehal::log_web(F("Software reset via esp_restart."));
+            break;
+        case ESP_RST_PANIC:
+            ehal::log_web(F("Software reset due to exception/panic."));
+            break;
+        case ESP_RST_INT_WDT:
+            ehal::log_web(F("Reset (software or hardware) due to interrupt watchdog."));
+            break;
+        case ESP_RST_TASK_WDT:
+            ehal::log_web(F("Reset due to task watchdog."));
+            break;
+        case ESP_RST_WDT:
+            ehal::log_web(F("Reset due to other watchdogs."));
+            break;
+        case ESP_RST_DEEPSLEEP:
+            ehal::log_web(F("Reset after exiting deep sleep mode."));
+            break;
+        case ESP_RST_BROWNOUT:
+            ehal::log_web(F("Brownout reset (software or hardware)."));
+            break;
+        case ESP_RST_SDIO:
+            ehal::log_web(F("Reset over SDIO."));
+            break;
+        default:
+            ehal::log_web(F("Reset for unknown reason (%d)"), reason);
+            break;
+    }    
+}
+
 void setup()
 {
     if (!ehal::load_saved_configuration())
@@ -138,13 +176,19 @@ void setup()
 
     pinMode(ehal::config_instance().StatusLed, OUTPUT);
 
+    log_last_reset_reason();
     ehal::log_web(F("Ecodan HomeAssistant Bridge startup successful, starting request processing."));
+
+    ehal::init_watchdog();
+    ehal::add_thread_to_watchdog();
 }
 
 void loop()
 {
     try
     {
+        ehal::ping_watchdog();
+
         ehal::http::handle_loop();
 
         if (heatpumpInitialized)
@@ -155,7 +199,7 @@ void loop()
 
         update_time(/* force =*/false);
         update_status_led();
-        delay(1);
+        delay(1);        
     }
     catch (std::exception const& ex)
     {
