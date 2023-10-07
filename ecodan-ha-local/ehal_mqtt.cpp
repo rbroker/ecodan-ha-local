@@ -19,7 +19,9 @@ namespace ehal::mqtt
 
     void publish_climate_status();
 
+    std::mutex statusUpdateMtx;
     bool needsAutoDiscover = true;
+    bool updateStatus = false;
     WiFiClient espClient;
     MQTTClient mqttClient(4096);
 
@@ -31,6 +33,23 @@ namespace ehal::mqtt
         TEMPERATURE,
         COP
     };
+
+    void trigger_status_udate()
+    {
+        std::lock_guard<std::mutex> lock { statusUpdateMtx };
+        updateStatus = true;
+    }
+
+    bool status_update_forced()
+    {
+        bool needsUpdate = false;
+        {
+            std::lock_guard<std::mutex> lock { statusUpdateMtx };
+            std::swap(needsUpdate, updateStatus);
+        }
+
+        return needsUpdate;
+    }
 
     // https://arduinojson.org/v6/how-to/configure-the-serialization-of-floats/#how-to-reduce-the-number-of-decimal-places
     double round2(double value)
@@ -128,29 +147,36 @@ off
         }
     }
 
+    void on_force_dhw_command(const String& payload)
+    {        
+        hp::set_dhw_force(payload == "ON");        
+    }
+
     void mqtt_callback(String& topic, String& payload)
     {
         try
         {
             auto& config = config_instance();
-            String uniqueName = unique_entity_name(F("climate_control"));
-            String tempCmdTopic = config.MqttTopic + "/" + uniqueName + F("/temp_cmd");
-            String modeCmdTopic = config.MqttTopic + "/" + uniqueName + F("/mode_cmd");
+            String climateEntity = unique_entity_name(F("climate_control"));
+            String tempCmdTopic = config.MqttTopic + "/" + climateEntity + F("/temp_cmd");
+            String modeCmdTopic = config.MqttTopic + "/" + climateEntity + F("/mode_cmd");
+            String dhwForceCmdTopic = config.MqttTopic + "/" + unique_entity_name(F("force_dhw")) + F("/set");
 
             log_web(F("MQTT topic received: %s: '%s'"), topic.c_str(), payload.c_str());
             if (tempCmdTopic == topic)
             {
-                on_z1_temperature_set_command(payload);
-                std::thread async_publish([]() 
-                {                                
-                    publish_climate_status();
-                });
-                async_publish.detach();
+                on_z1_temperature_set_command(payload);                
             }
             else if (modeCmdTopic == topic)
             {
                 on_mode_set_command(payload);
             }
+            else if (dhwForceCmdTopic == topic)
+            {
+                on_force_dhw_command(payload);
+            }
+
+            trigger_status_udate();
         } 
         catch (std::exception const& ex)
         {
@@ -213,7 +239,7 @@ off
             needsAutoDiscover = true;
         }
 
-        if (now - last_attempt < std::chrono::seconds(30))
+        if (now - last_attempt < std::chrono::seconds(30) || !status_update_forced())
             return false;
 
         last_attempt = now;
@@ -300,6 +326,39 @@ off
         if (!publish_mqtt(discoveryTopic, payloadJson, /* retain =*/true))
         {
             log_web(F("Failed to publish homeassistant climate entity auto-discover"));
+            return false;
+        }
+
+        return true;
+    }
+
+     bool publish_ha_force_dhw_auto_discover()
+    {
+        // https://www.home-assistant.io/integrations/switch.mqtt/
+        String uniqueName = unique_entity_name(F("force_dhw"));
+
+        const auto& config = config_instance();
+        String discoveryTopic = String(F("homeassistant/switch/")) + uniqueName + F("/config");
+        String stateTopic = config.MqttTopic + "/" + unique_entity_name(F("mode_dhw_forced")) + F("/state");        
+        String cmdTopic = config.MqttTopic + "/" + uniqueName + F("/set");
+
+        DynamicJsonDocument payloadJson(8192);
+        payloadJson[F("name")] = uniqueName;
+        payloadJson[F("unique_id")] = uniqueName;
+        payloadJson[F("icon")] = F("mdi:toggle-switch-variant");
+
+        add_discovery_device_object(payloadJson);
+
+        payloadJson[F("stat_t")] = stateTopic;
+        payloadJson[F("stat_t_tpl")] = F("{{ value }}");
+        payloadJson[F("stat_on")] = F("on");
+        payloadJson[F("stat_off")] = F("off");
+        payloadJson[F("cmd_t")] = cmdTopic;
+        payloadJson[F("cmd_tpl")] = F("{{ value }}");               
+
+        if (!publish_mqtt(discoveryTopic, payloadJson, /* retain =*/true))
+        {
+            log_web(F("Failed to publish homeassistant force DHW entity auto-discover"));
             return false;
         }
 
@@ -437,6 +496,9 @@ off
 
         // https://www.home-assistant.io/integrations/mqtt/
         if (!publish_ha_climate_auto_discover())
+            anyFailed = true;
+
+        if (!publish_ha_force_dhw_auto_discover())
             anyFailed = true;
 
         if (!publish_ha_binary_sensor_auto_discover(F("mode_defrost")))
@@ -632,6 +694,12 @@ off
             if (!mqttClient.subscribe(tempCmdTopic))
             {
                 log_web(F("Failed to subscribe to temperature command topic!"));
+                return false;
+            }
+
+            if (!mqttClient.subscribe(config.MqttTopic + "/" + unique_entity_name(F("force_dhw")) + F("/set")))
+            {
+                log_web(F("Failed to subscribe to boost DHW command topic!"));
                 return false;
             }
 

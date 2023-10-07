@@ -254,11 +254,27 @@ namespace ehal::hp
         {
             log_web(F("command dispatch failed for z1 temperature setting!"));
             return false;
+        }        
+
+        return true;
+    }
+
+    bool set_dhw_force(bool on)
+    {
+        Message cmd{MsgType::SET_CMD, SetType::DHW_SETTING};
+        cmd[1] = SET_SETTINGS_FLAG_MODE_TOGGLE;
+        cmd[3] = on ? 1 : 0; // bit[3] of payload is DHW force, bit[2] is Holiday mode.        
+        
+        {
+            std::lock_guard<std::mutex>{cmdQueueMutex};
+            cmdQueue.emplace(std::move(cmd));
         }
 
-        // Assume success, next status query will reset us back to correct value if it did fail.
-        std::lock_guard<Status> lock{status};
-        status.Zone1SetTemperature = newTemp;
+        if (!dispatch_next_cmd())
+        {
+            log_web(F("command dispatch failed for DHW force setting!"));
+            return false;
+        }
 
         return true;
     }

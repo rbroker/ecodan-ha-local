@@ -210,6 +210,7 @@ namespace ehal::hp
     float get_max_thermostat_temperature();
 
     bool set_z1_target_temperature(float value);
+    bool set_dhw_force(bool on);
     bool set_mode(const String& mode);
 
     bool begin_connect();
