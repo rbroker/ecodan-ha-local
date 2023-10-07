@@ -8,6 +8,7 @@
 
 #include <cstdio>
 #include <deque>
+#include <memory>
 #include <mutex>
 
 #if CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32C3
@@ -24,8 +25,8 @@ namespace ehal
 #define MAX_NUM_ELEMENTS 32U
 
     void log_web(const __FlashStringHelper* fmt, ...)
-    {
-        char buffer[MAX_MESSAGE_LENGTH] = {};
+    {        
+        std::unique_ptr<char[]> buffer{ new char[MAX_MESSAGE_LENGTH] };
 
         va_list args;
         va_start(args, fmt);
@@ -33,11 +34,11 @@ namespace ehal
         // Include timestamp in diagnostic log message.
         time_t now = time(nullptr);
         struct tm t = *localtime(&now);
-        strftime(buffer, sizeof(buffer), "[%T] ", &t);
+        strftime(buffer.get(), MAX_MESSAGE_LENGTH, "[%T] ", &t);
         const size_t offset = 11; // "[14:55:02] "
 
         // Format remainder of log message into buffer.
-        vsnprintf_P(buffer + offset, sizeof(buffer) - offset, (PGM_P)fmt, args);
+        vsnprintf_P(buffer.get() + offset, MAX_MESSAGE_LENGTH - offset, (PGM_P)fmt, args);
 
         va_end(args);
 
@@ -55,7 +56,7 @@ namespace ehal
         if (diagnosticRingbuffer.size() > MAX_NUM_ELEMENTS)
             diagnosticRingbuffer.pop_front();
 
-        diagnosticRingbuffer.push_back(buffer);
+        diagnosticRingbuffer.push_back(buffer.get());
     }
 
     void log_web_ratelimit(const __FlashStringHelper* fmt, ...)
@@ -66,7 +67,7 @@ namespace ehal
         if (log_time - last_log > std::chrono::seconds(1))
         {
             last_log = log_time;
-            char buffer[MAX_MESSAGE_LENGTH] = {};
+            std::unique_ptr<char[]> buffer{ new char[MAX_MESSAGE_LENGTH] };
 
             va_list args;
             va_start(args, fmt);
@@ -74,11 +75,11 @@ namespace ehal
             // Include timestamp in diagnostic log message.
             time_t now = time(nullptr);
             struct tm t = *localtime(&now);
-            strftime(buffer, sizeof(buffer), "[%T] ", &t);
+            strftime(buffer.get(), MAX_MESSAGE_LENGTH, "[%T] ", &t);
             const size_t offset = 11; // "[14:55:02] "
 
             // Format remainder of log message into buffer.
-            vsnprintf_P(buffer + offset, sizeof(buffer) - offset, (PGM_P)fmt, args);
+            vsnprintf_P(buffer.get() + offset, MAX_MESSAGE_LENGTH - offset, (PGM_P)fmt, args);
 
             va_end(args);
 
@@ -95,7 +96,7 @@ namespace ehal
             if (diagnosticRingbuffer.size() > MAX_NUM_ELEMENTS)
                 diagnosticRingbuffer.pop_front();
 
-            diagnosticRingbuffer.push_back(buffer);
+            diagnosticRingbuffer.push_back(buffer.get());
         }
     }
 
