@@ -1,7 +1,8 @@
-#include "esp_err.h"
 #include "ehal_diagnostics.h"
 #include "ehal_thirdparty.h"
+#include "esp_err.h"
 #include "psram_alloc.h"
+#include <chrono>
 
 #include "time.h"
 
@@ -19,7 +20,7 @@ namespace ehal
     psram::deque diagnosticRingbuffer;
 
 #define MAX_MESSAGE_LENGTH 255U
-#define MAX_NUM_ELEMENTS 32U    
+#define MAX_NUM_ELEMENTS 32U
 
     void log_web(const __FlashStringHelper* fmt, ...)
     {
@@ -39,7 +40,16 @@ namespace ehal
 
         va_end(args);
 
-        std::lock_guard<std::mutex> lock(diagnosticRingbufferLock);
+        std::unique_lock<std::mutex> lock(diagnosticRingbufferLock, std::try_to_lock);
+
+        auto start = std::chrono::steady_clock::now();
+        while (!lock.owns_lock() && (std::chrono::steady_clock::now() - start) < std::chrono::seconds(10))
+        {
+            lock.try_lock();
+        }
+
+        if (!lock.owns_lock())
+            return;
 
         if (diagnosticRingbuffer.size() > MAX_NUM_ELEMENTS)
             diagnosticRingbuffer.pop_front();
@@ -51,10 +61,10 @@ namespace ehal
     {
         static std::chrono::steady_clock::time_point last_log = std::chrono::steady_clock::now();
 
-        std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
-        if (now - last_log > std::chrono::seconds(1))
+        std::chrono::steady_clock::time_point log_time = std::chrono::steady_clock::now();
+        if (log_time - last_log > std::chrono::seconds(1))
         {
-            last_log = now;
+            last_log = log_time;
             char buffer[MAX_MESSAGE_LENGTH] = {};
 
             va_list args;
@@ -71,7 +81,15 @@ namespace ehal
 
             va_end(args);
 
-            std::lock_guard<std::mutex> lock(diagnosticRingbufferLock);
+            std::unique_lock<std::mutex> lock(diagnosticRingbufferLock, std::try_to_lock);
+
+            while (!lock.owns_lock() && (std::chrono::steady_clock::now() - log_time) < std::chrono::seconds(10))
+            {
+                lock.try_lock();
+            }
+
+            if (!lock.owns_lock())
+                return;
 
             if (diagnosticRingbuffer.size() > MAX_NUM_ELEMENTS)
                 diagnosticRingbuffer.pop_front();
@@ -100,7 +118,7 @@ namespace ehal
 
         return jsonOut;
     }
-    
+
     float get_cpu_temperature()
     {
 #if CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32C3
@@ -109,11 +127,11 @@ namespace ehal
         if (!started)
         {
             temp_sensor_start();
-            started = true;            
+            started = true;
         }
 
         float temp;
-        temp_sensor_read_celsius(&temp);        
+        temp_sensor_read_celsius(&temp);
 
         return temp;
 #else

@@ -87,9 +87,16 @@ namespace ehal::hp
 
         // It shouldn't take long to receive the rest of the payload after we get the header.
         size_t remainingBytes = msg.payload_size() + CHECKSUM_SIZE;
+        auto startTime = std::chrono::steady_clock::now();
         while (port.available() < remainingBytes)
         {
             delay(1);
+
+            if (std::chrono::steady_clock::now() - startTime > std::chrono::seconds(30))
+            {
+                log_web(F("Serial port message could not be received within 30s (got %u / %u bytes)"), port.available(), remainingBytes);
+                return false;
+            }
         }
 
         if (port.readBytes(msg.payload(), remainingBytes) < remainingBytes)
@@ -150,6 +157,7 @@ namespace ehal::hp
             std::lock_guard<std::mutex> lock{cmdQueueMutex};
             while (!cmdQueue.empty())
                 cmdQueue.pop();
+
             connected = false;
             return false;
         }
@@ -160,7 +168,13 @@ namespace ehal::hp
     bool begin_get_status()
     {
         {
-            std::lock_guard<std::mutex> lock{cmdQueueMutex};
+            std::unique_lock<std::mutex> lock{ cmdQueueMutex, std::try_to_lock };
+
+            if (!lock)
+            {
+                log_web(F("Unable to acquire lock for status query, owned by another thread!"));
+                delay(1);
+            }
 
             if (!cmdQueue.empty())
             {
