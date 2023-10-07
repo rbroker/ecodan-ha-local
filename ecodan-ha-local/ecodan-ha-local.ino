@@ -38,7 +38,9 @@ bool initialize_wifi_access_point()
         }
         WiFi.begin(config.WifiSsid.c_str(), config.WifiPassword.c_str());
 
-        for (int i = 0; i < 10; ++i)
+        // Give us ~2 mins to re-establish a WiFi connection before we give up,
+        // just in case there's a power cut and the router needs time to boot.
+        for (int i = 0; i < 240; ++i)
         {
             if (WiFi.isConnected())
                 break;
@@ -52,6 +54,8 @@ bool initialize_wifi_access_point()
             ehal::log_web(F("Couldn't connect to WiFi network on boot, falling back to AP mode."));
             config.WifiPassword.clear();
             config.WifiSsid.clear();
+            ehal::save_configuration(config);
+            ESP.restart();
         }
     }
 
