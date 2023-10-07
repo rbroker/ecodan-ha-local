@@ -19,11 +19,7 @@ namespace ehal
         config.DevicePassword = prefs.getString("device_pw");     
         config.SerialRxPort = prefs.getUShort("serial_rx", 33U);
         config.SerialTxPort = prefs.getUShort("serial_tx", 34U);
-#if CONFIG_IDF_TARGET_ESP32S3
-        config.StatusLed = prefs.getUShort("status_led", 47U);
-#else
-        config.StatusLed = prefs.getUShort("status_led", 15U);
-#endif
+        config.StatusLed = prefs.getUShort("status_led", LED_BUILTIN);
         config.DumpPackets = prefs.getBool("dump_pkt", false);
         config.HostName = prefs.getString("hostname", "ecodan_ha_local");
         config.WifiSsid = prefs.getString("wifi_ssid");
