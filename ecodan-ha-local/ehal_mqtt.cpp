@@ -239,7 +239,7 @@ off
             needsAutoDiscover = true;
         }
 
-        if (now - last_attempt < std::chrono::seconds(30) || !status_update_forced())
+        if ((now - last_attempt < std::chrono::seconds(30)) && !status_update_forced())
             return false;
 
         last_attempt = now;
