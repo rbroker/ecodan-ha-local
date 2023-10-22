@@ -18,10 +18,10 @@ namespace ehal::mqtt
 #define SENSOR_STATE_TIMEOUT (300) // If we update HP state once a minute, expiring HA states after 300s seems appropriate.
 
     void publish_climate_status();
+    void publish_binary_sensor_status(const String& name, bool on);
 
     std::mutex statusUpdateMtx;
-    bool needsAutoDiscover = true;
-    bool updateStatus = false;
+    bool needsAutoDiscover = true;    
     WiFiClient espClient;
     MQTTClient mqttClient(4096);
 
@@ -33,23 +33,6 @@ namespace ehal::mqtt
         TEMPERATURE,
         COP
     };
-
-    void trigger_status_udate()
-    {
-        std::lock_guard<std::mutex> lock { statusUpdateMtx };
-        updateStatus = true;
-    }
-
-    bool status_update_forced()
-    {
-        bool needsUpdate = false;
-        {
-            std::lock_guard<std::mutex> lock { statusUpdateMtx };
-            std::swap(needsUpdate, updateStatus);
-        }
-
-        return needsUpdate;
-    }
 
     // https://arduinojson.org/v6/how-to/configure-the-serialization-of-floats/#how-to-reduce-the-number-of-decimal-places
     double round2(double value)
@@ -133,9 +116,23 @@ off
             return;
         }
 
-        if (!hp::set_z1_target_temperature(payload.toFloat()))
+        float setTemperature = payload.toFloat();
+
+        if (!hp::set_z1_target_temperature(setTemperature))
         {
             log_web(F("Failed to set z1 target temperature!"));
+        }
+        else
+        {
+            {
+                auto& status = hp::get_status();
+                std::lock_guard<hp::Status> lock{status};
+                status.Zone1SetTemperature = setTemperature;            
+            }
+
+            // Ensure lock is released, because publish_climate_status will attempt
+            // to acquire it internally
+            publish_climate_status();
         }
     }
 
@@ -144,12 +141,24 @@ off
         if (!hp::set_mode(payload))
         {
             log_web(F("Failed to set operation mode!"));
-        }
+        }     
     }
 
     void on_force_dhw_command(const String& payload)
     {        
-        hp::set_dhw_force(payload == "ON");        
+        bool forced = payload == "ON";
+
+        if (!hp::set_dhw_force(forced))
+        {
+            log_web(F("Failed to force DHW: %s"), payload.c_str());
+        }
+        else
+        {
+            auto& status = hp::get_status();
+            std::lock_guard<hp::Status> lock{status};
+            status.DhwForcedActive = forced;
+            publish_binary_sensor_status(F("mode_dhw_forced"), forced);
+        }     
     }
 
     void mqtt_callback(String& topic, String& payload)
@@ -169,14 +178,12 @@ off
             }
             else if (modeCmdTopic == topic)
             {
-                on_mode_set_command(payload);
+                on_mode_set_command(payload);                
             }
             else if (dhwForceCmdTopic == topic)
             {
                 on_force_dhw_command(payload);
             }
-
-            trigger_status_udate();
         } 
         catch (std::exception const& ex)
         {
@@ -239,7 +246,7 @@ off
             needsAutoDiscover = true;
         }
 
-        if ((now - last_attempt < std::chrono::seconds(30)) && !status_update_forced())
+        if ((now - last_attempt < std::chrono::seconds(30)))
             return false;
 
         last_attempt = now;
@@ -522,10 +529,10 @@ off
         if (!publish_ha_float_sensor_auto_discover(F("outside_temp"), SensorType::TEMPERATURE))
             anyFailed = true;
 
-        if (!publish_ha_float_sensor_auto_discover(F("dhw_feed_temp"), SensorType::TEMPERATURE))
+        if (!publish_ha_float_sensor_auto_discover(F("hp_feed_temp"), SensorType::TEMPERATURE))
             anyFailed = true;
 
-        if (!publish_ha_float_sensor_auto_discover(F("dhw_return_temp"), SensorType::TEMPERATURE))
+        if (!publish_ha_float_sensor_auto_discover(F("hp_return_temp"), SensorType::TEMPERATURE))
             anyFailed = true;
 
         if (!publish_ha_float_sensor_auto_discover(F("boiler_flow_temp"), SensorType::TEMPERATURE))
@@ -640,8 +647,8 @@ off
         publish_sensor_status<float>(F("legionella_prevention_temp"), status.LegionellaPreventionSetPoint);
         publish_sensor_status<float>(F("dhw_temp_drop"), status.DhwTemperatureDrop);
         publish_sensor_status<float>(F("outside_temp"), status.OutsideTemperature);
-        publish_sensor_status<float>(F("dhw_feed_temp"), status.DhwFeedTemperature);
-        publish_sensor_status<float>(F("dhw_return_temp"), status.DhwReturnTemperature);
+        publish_sensor_status<float>(F("hp_feed_temp"), status.DhwFeedTemperature);
+        publish_sensor_status<float>(F("hp_return_temp"), status.DhwReturnTemperature);
         publish_sensor_status<float>(F("boiler_flow_temp"), status.BoilerFlowTemperature);
         publish_sensor_status<float>(F("boiler_return_temp"), status.BoilerReturnTemperature);
         publish_sensor_status<float>(F("dhw_flow_temp_target"), status.DhwFlowTemperatureSetPoint);
