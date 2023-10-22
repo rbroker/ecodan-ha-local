@@ -20,6 +20,7 @@ namespace ehal
         String MqttUserName;
         String MqttPassword;
         String MqttTopic;
+        String BootTime;
     };
 
     Config& config_instance();

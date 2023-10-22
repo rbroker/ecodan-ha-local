@@ -317,6 +317,7 @@ namespace ehal::http
         page.replace(F("{{wifi_mac}}"), WiFi.macAddress());
         page.replace(F("{{wifi_mac}}"), WiFi.macAddress());
         page.replace(F("{{wifi_tx_power}}"), String(WiFi.getTxPower()));
+        page.replace(F("{{device_boot_time}}"), ehal::config_instance().BootTime);
 
         page.replace(F("{{ha_hp_entity}}"), String(F("climate.")) + ehal::mqtt::unique_entity_name(F("climate_control")));
 

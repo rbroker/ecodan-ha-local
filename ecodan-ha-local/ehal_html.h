@@ -137,11 +137,11 @@ namespace ehal
 </form>
 )";
 
-    const char* BODY_TEMPLATE_CONFIG_SAVED PROGMEM = R"(<p>Configuration Saved! Rebooting...<span id="reboot_progress"><span> <a href="/">Home</a></p>)";
+    const char* BODY_TEMPLATE_CONFIG_SAVED PROGMEM = R"(<p>Configuration Saved! Rebooting... (this should take a few seconds!) <span id="reboot_progress"><span> <a href="/">Home</a></p>)";
 
-    const char* BODY_TEMPLATE_CONFIG_CLEARED PROGMEM = R"(<p>Configuration Reset To Default! Rebooting...<span id="reboot_progress"></span> <a href="/">Home</a></p>)";
+    const char* BODY_TEMPLATE_CONFIG_CLEARED PROGMEM = R"(<p>Configuration Reset To Default! Rebooting... (this should take a few seconds!) <span id="reboot_progress"></span> <a href="/">Home</a></p>)";
 
-    const char* BODY_TEMPLATE_FIRMWARE_UPDATE PROGMEM = R"(<p>Updating firmware...<span id="reboot_progress"></span> <a href="/">Home</a></p>)";
+    const char* BODY_TEMPLATE_FIRMWARE_UPDATE PROGMEM = R"(<p>Updating firmware... (this should take a few seconds!) <span id="reboot_progress"></span> <a href="/">Home</a></p>)";
 
     const char* BODY_TEMPLATE_REDIRECT PROGMEM = R"(<p>Redirecting...</p>)";
 
@@ -215,6 +215,10 @@ namespace ehal
         <td>{{wifi_tx_power}}</td>
     </tr>
     <tr>
+        <td>Device Boot Time (UTC):</td>
+        <td>{{device_boot_time}}</td>
+    </tr>
+    <tr>
         <td>HomeAssistant Heat Pump Entity:</td>
         <td>{{ha_hp_entity}}</td>
     </tr>
@@ -225,7 +229,7 @@ namespace ehal
     <tr>
         <td>Heat Pump Message Rx Count:</td>
         <td>{{hp_rx_count}}</td>
-    </tr>
+    </tr>    
 </table>
 <h2>Logs</h2>
 <pre><code class="column column-33 column-offset-33" style="max-height:250px;overflow:auto;" id="logs">
@@ -270,13 +274,13 @@ namespace ehal
         <td>DHW:</td>
         <td>{{dhw_consumed}}kWh &rarr; {{dhw_delivered}}kWh (COP: {{dhw_cop}})</td>
     </tr>
+    <thead>
+        <th colspan="2">Status</th>
+    </thead>
     <tr>
         <td>Output Power:</td>
         <td>{{out_pwr}}kW</td>
     </tr>
-    <thead>
-        <th colspan="2">Status</th>
-    </thead>
     <tr>
         <td>Power:</td>
         <td>{{mode_pwr}}</td>

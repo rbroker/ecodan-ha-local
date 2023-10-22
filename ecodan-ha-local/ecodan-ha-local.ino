@@ -87,6 +87,21 @@ void update_time(bool force)
     }
 }
 
+void set_boot_time()
+{
+    auto& config = ehal::config_instance();
+        
+    const size_t len = 21; // "yyyy-mm-ddThh:mm:ssZ\0"
+    auto buffer = std::unique_ptr<char[]>(new char[len]);
+    time_t now = time(nullptr);
+    struct tm t = *localtime(&now);
+    
+    if (strftime(buffer.get(), len, "%FT%TZ", &t) == 0)
+        return;
+    
+    config.BootTime = String(buffer.get());
+}
+
 void update_status_led()
 {
     static auto last_tick_update = std::chrono::steady_clock::now();
@@ -164,7 +179,8 @@ void setup()
     initialize_wifi_access_point();
 
     update_time(/* force =*/true);
-
+    set_boot_time();
+    
     if (ehal::requires_first_time_configuration())
     {
         ehal::log_web(F("First time configuration required, starting captive portal..."));
@@ -177,8 +193,8 @@ void setup()
         heatpumpInitialized = ehal::hp::initialize();
         mqttInitialized = ehal::mqtt::initialize();
     }
-
-    pinMode(ehal::config_instance().StatusLed, OUTPUT);
+    
+    pinMode(ehal::config_instance().StatusLed, OUTPUT);        
 
     log_last_reset_reason();
     ehal::log_web(F("Ecodan HomeAssistant Bridge startup successful, starting request processing."));
@@ -202,7 +218,7 @@ void loop()
             ehal::mqtt::handle_loop();
 
         update_time(/* force =*/false);
-        update_status_led();
+        update_status_led();        
         delay(1);        
     }
     catch (std::exception const& ex)
