@@ -21,7 +21,7 @@ namespace ehal::mqtt
     void publish_binary_sensor_status(const String& name, bool on);
 
     std::mutex statusUpdateMtx;
-    bool needsAutoDiscover = true;    
+    bool needsAutoDiscover = true;
     WiFiClient espClient;
     MQTTClient mqttClient(4096);
 
@@ -127,7 +127,7 @@ off
             {
                 auto& status = hp::get_status();
                 std::lock_guard<hp::Status> lock{status};
-                status.Zone1SetTemperature = setTemperature;            
+                status.Zone1SetTemperature = setTemperature;
             }
 
             // Ensure lock is released, because publish_climate_status will attempt
@@ -141,11 +141,11 @@ off
         if (!hp::set_mode(payload))
         {
             log_web(F("Failed to set operation mode!"));
-        }     
+        }
     }
 
     void on_force_dhw_command(const String& payload)
-    {        
+    {
         bool forced = payload == "ON";
 
         if (!hp::set_dhw_force(forced))
@@ -158,7 +158,7 @@ off
             std::lock_guard<hp::Status> lock{status};
             status.DhwForcedActive = forced;
             publish_binary_sensor_status(F("mode_dhw_forced"), forced);
-        }     
+        }
     }
 
     void mqtt_callback(String& topic, String& payload)
@@ -174,17 +174,17 @@ off
             log_web(F("MQTT topic received: %s: '%s'"), topic.c_str(), payload.c_str());
             if (tempCmdTopic == topic)
             {
-                on_z1_temperature_set_command(payload);                
+                on_z1_temperature_set_command(payload);
             }
             else if (modeCmdTopic == topic)
             {
-                on_mode_set_command(payload);                
+                on_mode_set_command(payload);
             }
             else if (dhwForceCmdTopic == topic)
             {
                 on_force_dhw_command(payload);
             }
-        } 
+        }
         catch (std::exception const& ex)
         {
             log_web(F("Exception on MQTT callback: %s"), ex.what());
@@ -339,14 +339,14 @@ off
         return true;
     }
 
-     bool publish_ha_force_dhw_auto_discover()
+    bool publish_ha_force_dhw_auto_discover()
     {
         // https://www.home-assistant.io/integrations/switch.mqtt/
         String uniqueName = unique_entity_name(F("force_dhw"));
 
         const auto& config = config_instance();
         String discoveryTopic = String(F("homeassistant/switch/")) + uniqueName + F("/config");
-        String stateTopic = config.MqttTopic + "/" + unique_entity_name(F("mode_dhw_forced")) + F("/state");        
+        String stateTopic = config.MqttTopic + "/" + unique_entity_name(F("mode_dhw_forced")) + F("/state");
         String cmdTopic = config.MqttTopic + "/" + uniqueName + F("/set");
 
         DynamicJsonDocument payloadJson(8192);
@@ -361,7 +361,7 @@ off
         payloadJson[F("stat_on")] = F("on");
         payloadJson[F("stat_off")] = F("off");
         payloadJson[F("cmd_t")] = cmdTopic;
-        payloadJson[F("cmd_tpl")] = F("{{ value }}");               
+        payloadJson[F("cmd_tpl")] = F("{{ value }}");
 
         if (!publish_mqtt(discoveryTopic, payloadJson, /* retain =*/true))
         {
@@ -445,8 +445,9 @@ off
             break;
 
         case SensorType::COP:
-            payloadJson[F("icon")] = F("mdi:home-lightning-bolt");
-            payloadJson[F("dev_cla")] = F("power_factor");
+            payloadJson[F("icon")] = F("mdi:heat-pump-outline");
+            payloadJson[F("unit_of_meas")] = F("COP");
+            payloadJson[F("stat_cla")] = F("measurement");
             break;
 
         default:
