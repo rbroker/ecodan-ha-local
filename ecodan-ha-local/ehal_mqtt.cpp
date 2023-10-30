@@ -587,11 +587,8 @@ off
         if (!publish_ha_float_sensor_auto_discover(F("sh_cop"), SensorType::COP))
             anyFailed = true;
 
-        if (!anyFailed)
-        {
+        if (!anyFailed)        
             needsAutoDiscover = false;
-            log_web(F("Published homeassistant auto-discovery topics"));
-        }
     }
 
     void publish_climate_status()

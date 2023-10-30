@@ -244,7 +244,7 @@ namespace ehal::hp
         cmd[1] = SET_SETTINGS_FLAG_ZONE_TEMPERATURE;
         cmd[2] = static_cast<uint8_t>(SetZone::ZONE_1);
         cmd.set_float16(newTemp, 10);
-        
+
         {
             std::lock_guard<std::mutex>{cmdQueueMutex};
             cmdQueue.emplace(std::move(cmd));
@@ -254,7 +254,7 @@ namespace ehal::hp
         {
             log_web(F("command dispatch failed for z1 temperature setting!"));
             return false;
-        }        
+        }
 
         return true;
     }
@@ -263,8 +263,8 @@ namespace ehal::hp
     {
         Message cmd{MsgType::SET_CMD, SetType::DHW_SETTING};
         cmd[1] = SET_SETTINGS_FLAG_MODE_TOGGLE;
-        cmd[3] = on ? 1 : 0; // bit[3] of payload is DHW force, bit[2] is Holiday mode.        
-        
+        cmd[3] = on ? 1 : 0; // bit[3] of payload is DHW force, bit[2] is Holiday mode.
+
         {
             std::lock_guard<std::mutex>{cmdQueueMutex};
             cmdQueue.emplace(std::move(cmd));
@@ -434,8 +434,9 @@ namespace ehal::hp
 
         log_web(F("Initializing HeatPump with serial rx: %d, tx: %d"), (int8_t)config.SerialRxPort, (int8_t)config.SerialTxPort);
 
-        port.begin(2400, SERIAL_8E1, config.SerialRxPort, config.SerialTxPort);        
         pinMode(config.SerialRxPort, INPUT_PULLUP);
+        pinMode(config.SerialTxPort, OUTPUT);
+        port.begin(2400, SERIAL_8E1, config.SerialRxPort, config.SerialTxPort);
 
         serialRxThread = std::thread{serial_rx_thread};
 

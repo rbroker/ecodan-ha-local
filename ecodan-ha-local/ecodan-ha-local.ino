@@ -90,15 +90,15 @@ void update_time(bool force)
 void set_boot_time()
 {
     auto& config = ehal::config_instance();
-        
+
     const size_t len = 21; // "yyyy-mm-ddThh:mm:ssZ\0"
     auto buffer = std::unique_ptr<char[]>(new char[len]);
     time_t now = time(nullptr);
     struct tm t = *localtime(&now);
-    
+
     if (strftime(buffer.get(), len, "%FT%TZ", &t) == 0)
         return;
-    
+
     config.BootTime = String(buffer.get());
 }
 
@@ -130,12 +130,12 @@ void update_status_led()
 
 void log_last_reset_reason()
 {
-    auto reason = esp_reset_reason();        
+    auto reason = esp_reset_reason();
     switch (reason)
     {
         case ESP_RST_POWERON:
             ehal::log_web(F("Reset due to power-on event."));
-            break;        
+            break;
         case ESP_RST_SW:
             ehal::log_web(F("Software reset via esp_restart."));
             break;
@@ -163,7 +163,7 @@ void log_last_reset_reason()
         default:
             ehal::log_web(F("Reset for unknown reason (%d)"), reason);
             break;
-    }    
+    }
 }
 
 void setup()
@@ -180,7 +180,7 @@ void setup()
 
     update_time(/* force =*/true);
     set_boot_time();
-    
+
     if (ehal::requires_first_time_configuration())
     {
         ehal::log_web(F("First time configuration required, starting captive portal..."));
@@ -193,8 +193,8 @@ void setup()
         heatpumpInitialized = ehal::hp::initialize();
         mqttInitialized = ehal::mqtt::initialize();
     }
-    
-    pinMode(ehal::config_instance().StatusLed, OUTPUT);        
+
+    pinMode(ehal::config_instance().StatusLed, OUTPUT);
 
     log_last_reset_reason();
     ehal::log_web(F("Ecodan HomeAssistant Bridge startup successful, starting request processing."));
@@ -218,8 +218,7 @@ void loop()
             ehal::mqtt::handle_loop();
 
         update_time(/* force =*/false);
-        update_status_led();        
-        delay(1);        
+        update_status_led();
     }
     catch (std::exception const& ex)
     {

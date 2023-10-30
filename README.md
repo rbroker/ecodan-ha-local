@@ -51,14 +51,14 @@ The GPIO pin number which should be used for Serial data receive.
 
 | Default | Required |
 | ------- | -------- |
-| 33      | Yes      |
+| 27      | Yes      |
 
 ### Serial Tx Port
 The GPIO pin number which should be used for Serial data transmit.
 
 | Default | Required |
 | ------- | -------- |
-| 34      | Yes      |
+| 26      | Yes      |
 
 ### Status LED Port
 The GPIO pin number which should be used for the status LED. The following flashing patterns are possible:
@@ -67,9 +67,9 @@ The GPIO pin number which should be used for the status LED. The following flash
 - Steady long flashes: Network connection to the MQTT server has not been established
 - Constantly lit: Status is OK
 
-| Default | Required |
-| ------- | -------- |
-| 15      | No       |
+| Default     | Required |
+| ----------- | -------- |
+| LED_BUILTIN | No       |
 
 ### Dump Serial Packets
 Dump packets sent to/received from the heat pump to the diagnostic log window on the Diagnostics page.

@@ -2,6 +2,10 @@
 
 #include <Preferences.h>
 
+#ifndef LED_BUILTIN
+    #define LED_BUILTIN 15
+#endif
+
 namespace ehal
 {
     Config& config_instance()
@@ -17,8 +21,8 @@ namespace ehal
 
         Config& config = config_instance();
         config.DevicePassword = prefs.getString("device_pw");     
-        config.SerialRxPort = prefs.getUShort("serial_rx", 33U);
-        config.SerialTxPort = prefs.getUShort("serial_tx", 34U);
+        config.SerialRxPort = prefs.getUShort("serial_rx", 27U);
+        config.SerialTxPort = prefs.getUShort("serial_tx", 26U);
         config.StatusLed = prefs.getUShort("status_led", LED_BUILTIN);
         config.DumpPackets = prefs.getBool("dump_pkt", false);
         config.HostName = prefs.getString("hostname", "ecodan_ha_local");
@@ -76,7 +80,7 @@ namespace ehal
 
     String get_software_version()
     {
-        return FPSTR("v0.0.6");
+        return FPSTR("v0.0.7");
     }
 
 } // namespace ehal
