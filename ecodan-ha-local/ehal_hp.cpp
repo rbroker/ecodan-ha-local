@@ -5,6 +5,7 @@
 #include "ehal_proto.h"
 
 #include <HardwareSerial.h>
+#include <freertos/task.h>
 
 #include <mutex>
 #include <queue>
@@ -15,6 +16,8 @@ namespace ehal::hp
     HardwareSerial port = Serial1;
     uint64_t rxMsgCount = 0;
     uint64_t txMsgCount = 0;
+
+    TaskHandle_t serialRxTaskHandle = nullptr;
     std::thread serialRxThread;
     std::queue<Message> cmdQueue;
     std::mutex cmdQueueMutex;
@@ -50,6 +53,22 @@ namespace ehal::hp
         return true;
     }
 
+    void clear_command_queue()
+    {
+        std::lock_guard<std::mutex> lock{cmdQueueMutex};
+
+        while (!cmdQueue.empty())
+            cmdQueue.pop();
+    }
+
+    void resync_rx()
+    {
+        while (port.available() > 0)
+            port.read();
+
+        clear_command_queue();
+    }
+
     bool serial_rx(Message& msg)
     {
         if (!port)
@@ -60,20 +79,27 @@ namespace ehal::hp
 
         if (port.available() < HEADER_SIZE)
         {
-            return false;
+            const TickType_t maxBlockingTime = pdMS_TO_TICKS(1000);
+            ulTaskNotifyTakeIndexed(0, pdTRUE, maxBlockingTime);
+
+            // We were woken by an interrupt, but there's not enough data available
+            // yet on the serial port for us to start processing it as a packet.
+            if (port.available() < HEADER_SIZE)
+                return false;
         }
 
         // Scan for the start of an Ecodan packet.
         if (port.peek() != HEADER_MAGIC_A)
         {
             log_web_ratelimit(F("Dropping serial data, header magic mismatch"));
-            port.read();
+            resync_rx();
             return false;
         }
 
         if (port.readBytes(msg.buffer(), HEADER_SIZE) < HEADER_SIZE)
         {
             log_web(F("Serial port header read failure!"));
+            resync_rx();
             return false;
         }
 
@@ -82,6 +108,7 @@ namespace ehal::hp
         if (!msg.verify_header())
         {
             log_web(F("Serial port message appears invalid, skipping payload wait..."));
+            resync_rx();
             return false;
         }
 
@@ -95,6 +122,7 @@ namespace ehal::hp
             if (std::chrono::steady_clock::now() - startTime > std::chrono::seconds(30))
             {
                 log_web(F("Serial port message could not be received within 30s (got %u / %u bytes)"), port.available(), remainingBytes);
+                resync_rx();
                 return false;
             }
         }
@@ -102,13 +130,17 @@ namespace ehal::hp
         if (port.readBytes(msg.payload(), remainingBytes) < remainingBytes)
         {
             log_web(F("Serial port payload read failure!"));
+            resync_rx();
             return false;
         }
 
         msg.increment_write_offset(msg.payload_size()); // Don't count checksum byte.
 
         if (!msg.verify_checksum())
+        {
+            resync_rx();
             return false;
+        }
 
         auto& config = config_instance();
         if (config.DumpPackets)
@@ -154,9 +186,7 @@ namespace ehal::hp
         {
             log_web(F("Unable to dispatch status update request, flushing queued requests..."));
 
-            std::lock_guard<std::mutex> lock{cmdQueueMutex};
-            while (!cmdQueue.empty())
-                cmdQueue.pop();
+            clear_command_queue();
 
             connected = false;
             return false;
@@ -168,7 +198,7 @@ namespace ehal::hp
     bool begin_get_status()
     {
         {
-            std::unique_lock<std::mutex> lock{ cmdQueueMutex, std::try_to_lock };
+            std::unique_lock<std::mutex> lock{cmdQueueMutex, std::try_to_lock};
 
             if (!lock)
             {
@@ -178,8 +208,10 @@ namespace ehal::hp
 
             if (!cmdQueue.empty())
             {
-                log_web(F("Can't queue next status update, command queue is not empty: %u"), cmdQueue.size());
-                return false;
+                log_web(F("command queue was not empty when queueing status query: %u"), cmdQueue.size());
+
+                while (!cmdQueue.empty())
+                    cmdQueue.pop();
             }
 
             cmdQueue.emplace(MsgType::GET_CMD, GetType::DEFROST_STATE);
@@ -384,9 +416,24 @@ namespace ehal::hp
         log_web(F("Unexpected extended connection response!"));
     }
 
+    void IRAM_ATTR serial_rx_isr()
+    {
+        BaseType_t higherPriorityTaskWoken = pdFALSE;
+        vTaskNotifyGiveIndexedFromISR(serialRxTaskHandle, 0, &higherPriorityTaskWoken);
+        portYIELD_FROM_ISR(higherPriorityTaskWoken);
+    }
+
     void serial_rx_thread()
     {
         ehal::add_thread_to_watchdog();
+
+        // Wake the serial RX thread when the serial RX GPIO pin changes (this may occur during or after packet receipt)
+        serialRxTaskHandle = xTaskGetCurrentTaskHandle();
+
+        {
+            auto& config = config_instance();
+            attachInterrupt(digitalPinToInterrupt(config.SerialRxPort), serial_rx_isr, FALLING);
+        }
 
         while (true)
         {
@@ -397,7 +444,6 @@ namespace ehal::hp
                 Message res;
                 if (!serial_rx(res))
                 {
-                    delay(1);
                     continue;
                 }
 
@@ -436,6 +482,9 @@ namespace ehal::hp
 
         pinMode(config.SerialRxPort, INPUT_PULLUP);
         pinMode(config.SerialTxPort, OUTPUT);
+
+        delay(25); // There seems to be a window after setting the pin modes where trying to use the UART can be flaky, so introduce a short delay
+
         port.begin(2400, SERIAL_8E1, config.SerialRxPort, config.SerialTxPort);
 
         serialRxThread = std::thread{serial_rx_thread};
