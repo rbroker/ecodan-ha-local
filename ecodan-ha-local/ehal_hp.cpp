@@ -291,6 +291,49 @@ namespace ehal::hp
         return true;
     }
 
+    // From FTC6 installation manual ("DHW max. temp.")
+    float get_min_dhw_temperature()
+    {
+        return 40.0f;
+    }
+
+    float get_max_dhw_temperature()
+    {
+        return 60.0f;
+    }
+
+    bool set_dhw_target_temperature(float newTemp)
+    {
+        if (newTemp > get_max_dhw_temperature())
+        {
+            log_web(F("DHW setting exceeds maximum allowed (%s)!"), String(get_max_dhw_temperature()).c_str());
+            return false;
+        }
+
+        if (newTemp < get_min_dhw_temperature())
+        {
+            log_web(F("DHW setting is lower than minimum allowed (%s)!"), String(get_min_dhw_temperature()).c_str());
+            return false;
+        }
+
+        Message cmd{MsgType::SET_CMD, SetType::BASIC_SETTINGS};
+        cmd[1] = SET_SETTINGS_FLAG_DHW_TEMPERATURE;
+        cmd.set_float16(newTemp, 8);
+
+        {
+            std::lock_guard<std::mutex>{cmdQueueMutex};
+            cmdQueue.emplace(std::move(cmd));
+        }
+
+        if (!dispatch_next_cmd())
+        {
+            log_web(F("command dispatch failed for DHW temperature setting!"));
+            return false;
+        }
+
+        return true;
+    }
+
     bool set_dhw_force(bool on)
     {
         Message cmd{MsgType::SET_CMD, SetType::DHW_SETTING};

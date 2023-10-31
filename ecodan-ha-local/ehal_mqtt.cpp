@@ -19,6 +19,8 @@ namespace ehal::mqtt
 
     void publish_climate_status();
     void publish_binary_sensor_status(const String& name, bool on);
+    template <typename T>
+    void publish_sensor_status(const String& name, T value);
 
     std::mutex statusUpdateMtx;
     bool needsAutoDiscover = true;
@@ -136,6 +138,29 @@ off
         }
     }
 
+    void on_dhw_temperature_set_command(const String& payload)
+    {
+        if (payload.isEmpty())
+        {
+            return;
+        }
+
+        float setTemperature = payload.toFloat();
+
+        if (!hp::set_dhw_target_temperature(setTemperature))
+        {
+            log_web(F("Failed to set DHW target temperature!"));
+        }
+        else
+        {
+            auto& status = hp::get_status();
+            std::lock_guard<hp::Status> lock{status};
+            status.Zone1SetTemperature = setTemperature;
+
+            publish_sensor_status<float>(F("dhw_flow_temp_target"), setTemperature);
+        }
+    }
+
     void on_mode_set_command(const String& payload)
     {
         if (!hp::set_mode(payload))
@@ -170,11 +195,16 @@ off
             String tempCmdTopic = config.MqttTopic + "/" + climateEntity + F("/temp_cmd");
             String modeCmdTopic = config.MqttTopic + "/" + climateEntity + F("/mode_cmd");
             String dhwForceCmdTopic = config.MqttTopic + "/" + unique_entity_name(F("force_dhw")) + F("/set");
+            String dhwTempCmdTopic = config.MqttTopic + "/" + unique_entity_name(F("set_dhw_flow_temp_target")) + F("/set");
 
             log_web(F("MQTT topic received: %s: '%s'"), topic.c_str(), payload.c_str());
             if (tempCmdTopic == topic)
             {
                 on_z1_temperature_set_command(payload);
+            }
+            else if (dhwTempCmdTopic == topic)
+            {
+                on_dhw_temperature_set_command(payload);
             }
             else if (modeCmdTopic == topic)
             {
@@ -372,6 +402,41 @@ off
         return true;
     }
 
+    bool publish_ha_set_dhw_temp_auto_discover()
+    {
+        // https://www.home-assistant.io/integrations/number.mqtt/
+        String uniqueName = unique_entity_name(F("set_dhw_flow_temp_target"));
+
+        const auto& config = config_instance();
+        String discoveryTopic = String(F("homeassistant/number/")) + uniqueName + F("/config");
+        String stateTopic = config.MqttTopic + "/" + unique_entity_name(F("dhw_flow_temp_target")) + F("/state");
+        String cmdTopic = config.MqttTopic + "/" + uniqueName + F("/set");
+
+        DynamicJsonDocument payloadJson(8192);
+        payloadJson[F("name")] = uniqueName;
+        payloadJson[F("unique_id")] = uniqueName;
+
+        add_discovery_device_object(payloadJson);
+
+        payloadJson[F("stat_t")] = stateTopic;
+        payloadJson[F("stat_t_tpl")] = F("{{ value }}");
+        payloadJson[F("cmd_t")] = cmdTopic;
+        payloadJson[F("cmd_tpl")] = F("{{ value }}");
+        payloadJson[F("min")] = String(ehal::hp::get_min_dhw_temperature());
+        payloadJson[F("max")] = String(ehal::hp::get_max_dhw_temperature());
+        payloadJson[F("step")] = "0.5";
+        payloadJson[F("dev_cla")] = F("temperature");
+        payloadJson[F("unit_of_meas")] = F("°C");
+
+        if (!publish_mqtt(discoveryTopic, payloadJson, /* retain =*/true))
+        {
+            log_web(F("Failed to publish homeassistant DHW temperature set entity auto-discover"));
+            return false;
+        }
+
+        return true;
+    }
+
     bool publish_ha_binary_sensor_auto_discover(const String& name)
     {
         const auto& config = config_instance();
@@ -509,6 +574,9 @@ off
         if (!publish_ha_force_dhw_auto_discover())
             anyFailed = true;
 
+        if (!publish_ha_set_dhw_temp_auto_discover())
+            anyFailed = true;
+
         if (!publish_ha_binary_sensor_auto_discover(F("mode_defrost")))
             anyFailed = true;
 
@@ -587,7 +655,7 @@ off
         if (!publish_ha_float_sensor_auto_discover(F("sh_cop"), SensorType::COP))
             anyFailed = true;
 
-        if (!anyFailed)        
+        if (!anyFailed)
             needsAutoDiscover = false;
     }
 
@@ -703,6 +771,12 @@ off
             }
 
             if (!mqttClient.subscribe(config.MqttTopic + "/" + unique_entity_name(F("force_dhw")) + F("/set")))
+            {
+                log_web(F("Failed to subscribe to boost DHW command topic!"));
+                return false;
+            }
+
+            if (!mqttClient.subscribe(config.MqttTopic + "/" + unique_entity_name(F("set_dhw_flow_temp_target")) + F("/set")))
             {
                 log_web(F("Failed to subscribe to boost DHW command topic!"));
                 return false;

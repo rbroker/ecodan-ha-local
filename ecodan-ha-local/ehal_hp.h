@@ -208,8 +208,11 @@ namespace ehal::hp
     float get_temperature_step();
     float get_min_thermostat_temperature();
     float get_max_thermostat_temperature();
+    float get_min_dhw_temperature();
+    float get_max_dhw_temperature();
 
     bool set_z1_target_temperature(float value);
+    bool set_dhw_target_temperature(float value);
     bool set_dhw_force(bool on);
     bool set_mode(const String& mode);
 
