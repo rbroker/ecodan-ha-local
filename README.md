@@ -1,7 +1,7 @@
 # ecodan-ha-local
 ESP32 compatible program for local monitoring of Mitsubishi Ecodan Air to Water heat pumps with automatic discovery in HomeAssistant.
 
-Uses the CN105 connector on the Cased Flow Temp Controller (FTC6 in my setup) to do very basic control (temperature set point only) + retrieve basic sensor information from the heat pump.
+Uses the CN105 connector on the Cased Flow Temp Controller (FTC6 in my setup) to do very basic control (zone 1 temperature set point, DHW temperature set point, boost DHW) + retrieve basic sensor information from the heat pump.
 
 <p float="left">
   <img src="img/config_page.png" height="640" />
