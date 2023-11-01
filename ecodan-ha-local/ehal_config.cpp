@@ -80,7 +80,7 @@ namespace ehal
 
     String get_software_version()
     {
-        return FPSTR("v0.0.9");
+        return FPSTR("v0.1.0");
     }
 
 } // namespace ehal

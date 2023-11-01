@@ -142,6 +142,15 @@ namespace ehal::hp
 
         String dhw_mode_as_string()
         {
+            switch (Operation)
+            {
+                case OperationMode::DHW_ON:
+                case OperationMode::LEGIONELLA_PREVENTION:
+                    break;
+                default:
+                    return F("Off");
+            }
+
             switch (HotWaterMode)
             {
                 case DhwMode::NORMAL:
@@ -213,6 +222,7 @@ namespace ehal::hp
 
     bool set_z1_target_temperature(float value);
     bool set_dhw_target_temperature(float value);
+    bool set_dhw_mode(String mode);
     bool set_dhw_force(bool on);
     bool set_mode(const String& mode);
 

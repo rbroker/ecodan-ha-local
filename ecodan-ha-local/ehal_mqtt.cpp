@@ -169,6 +169,27 @@ off
         }
     }
 
+    void on_dhw_mode_set_command(const String& payload)
+    {
+        if (!hp::set_dhw_mode(payload))
+        {
+            log_web(F("Failed to set DHW mode!"));
+        }
+        else
+        {
+            auto& status = hp::get_status();
+            std::lock_guard<hp::Status> lock{status};
+            if (payload == "eco")
+                status.HotWaterMode = hp::Status::DhwMode::ECO;
+            else if (payload == "performance")
+                status.HotWaterMode = hp::Status::DhwMode::NORMAL;
+            else if (payload == "off")
+                status.Operation = hp::Status::OperationMode::OFF;
+
+            publish_sensor_status<String>(F("mode_dhw"), status.dhw_mode_as_string());
+        }
+    }
+
     void on_force_dhw_command(const String& payload)
     {
         bool forced = payload == "ON";
@@ -196,6 +217,7 @@ off
             String modeCmdTopic = config.MqttTopic + "/" + climateEntity + F("/mode_cmd");
             String dhwForceCmdTopic = config.MqttTopic + "/" + unique_entity_name(F("force_dhw")) + F("/set");
             String dhwTempCmdTopic = config.MqttTopic + "/" + unique_entity_name(F("dhw_water_heater")) + F("/set");
+            String dhwModeCmdTopic = config.MqttTopic + "/" + unique_entity_name(F("dhw_mode")) + F("/set");
 
             log_web(F("MQTT topic received: %s: '%s'"), topic.c_str(), payload.c_str());
             if (tempCmdTopic == topic)
@@ -209,6 +231,10 @@ off
             else if (modeCmdTopic == topic)
             {
                 on_mode_set_command(payload);
+            }
+            else if (dhwModeCmdTopic == topic)
+            {
+                on_dhw_mode_set_command(payload);
             }
             else if (dhwForceCmdTopic == topic)
             {
@@ -420,10 +446,13 @@ off
         payloadJson[F("temp_cmd_t")] = config.MqttTopic + "/" + uniqueName + F("/set");
         payloadJson[F("temp_stat_t")] = config.MqttTopic + "/" + unique_entity_name(F("dhw_flow_temp_target")) + F("/state");
         payloadJson[F("mode_stat_t")] = config.MqttTopic + "/" + unique_entity_name(F("mode_dhw")) + F("/state");
-        payloadJson[F("mode_stat_tpl")] = "{{ \"eco\" if value==\"Eco\" else \"performance\" }}";
+        payloadJson[F("mode_stat_tpl")] = "{% if value==\"Eco\" %} eco {% elif value==\"Normal\" %} performance {% else %} off {% endif %}";
+        payloadJson[F("power_cmd_t")] = config.MqttTopic + "/" + unique_entity_name(F("mode_dhw_forced")) + F("/state");
+        payloadJson[F("mode_cmd_t")] = config.MqttTopic + "/" + unique_entity_name(F("dhw_mode")) + F("/set");
         payloadJson[F("min_temp")] = String(ehal::hp::get_min_dhw_temperature());
         payloadJson[F("max_temp")] = String(ehal::hp::get_max_dhw_temperature());
         JsonArray modes = payloadJson.createNestedArray(F("modes"));
+        modes.add("off");
         modes.add("eco");
         modes.add("performance");
         payloadJson[F("temp_unit")] = "C";
@@ -779,7 +808,13 @@ off
 
             if (!mqttClient.subscribe(config.MqttTopic + "/" + unique_entity_name(F("dhw_water_heater")) + F("/set")))
             {
-                log_web(F("Failed to subscribe to boost DHW command topic!"));
+                log_web(F("Failed to subscribe to DHW temperature topic!"));
+                return false;
+            }
+
+             if (!mqttClient.subscribe(config.MqttTopic + "/" + unique_entity_name(F("dhw_mode")) + F("/set")))
+            {
+                log_web(F("Failed to subscribe to DHW mode command topic!"));
                 return false;
             }
 

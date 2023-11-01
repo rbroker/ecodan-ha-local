@@ -334,6 +334,37 @@ namespace ehal::hp
         return true;
     }
 
+    bool set_dhw_mode(String mode)
+    {
+        Status::DhwMode dhwMode = Status::DhwMode::NORMAL;
+
+        if (mode == "off")
+            return set_dhw_force(false);
+        else if (mode == "performance")
+            dhwMode = Status::DhwMode::NORMAL;
+        else if (mode == "eco")
+            dhwMode = Status::DhwMode::ECO;
+        else
+            return false;
+
+        Message cmd{MsgType::SET_CMD, SetType::BASIC_SETTINGS};
+        cmd[1] = SET_SETTINGS_FLAG_DHW_MODE;
+        cmd[5] = static_cast<uint8_t>(dhwMode);
+
+        {
+            std::lock_guard<std::mutex>{cmdQueueMutex};
+            cmdQueue.emplace(std::move(cmd));
+        }
+
+        if (!dispatch_next_cmd())
+        {
+            log_web(F("command dispatch failed for DHW temperature setting!"));
+            return false;
+        }
+
+        return true;
+    }
+
     bool set_dhw_force(bool on)
     {
         Message cmd{MsgType::SET_CMD, SetType::DHW_SETTING};
