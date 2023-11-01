@@ -195,7 +195,7 @@ off
             String tempCmdTopic = config.MqttTopic + "/" + climateEntity + F("/temp_cmd");
             String modeCmdTopic = config.MqttTopic + "/" + climateEntity + F("/mode_cmd");
             String dhwForceCmdTopic = config.MqttTopic + "/" + unique_entity_name(F("force_dhw")) + F("/set");
-            String dhwTempCmdTopic = config.MqttTopic + "/" + unique_entity_name(F("set_dhw_flow_temp_target")) + F("/set");
+            String dhwTempCmdTopic = config.MqttTopic + "/" + unique_entity_name(F("dhw_water_heater")) + F("/set");
 
             log_web(F("MQTT topic received: %s: '%s'"), topic.c_str(), payload.c_str());
             if (tempCmdTopic == topic)
@@ -404,13 +404,11 @@ off
 
     bool publish_ha_set_dhw_temp_auto_discover()
     {
-        // https://www.home-assistant.io/integrations/number.mqtt/
-        String uniqueName = unique_entity_name(F("set_dhw_flow_temp_target"));
+        // https://www.home-assistant.io/integrations/water_heater.mqtt/
+        String uniqueName = unique_entity_name(F("dhw_water_heater"));
 
         const auto& config = config_instance();
-        String discoveryTopic = String(F("homeassistant/number/")) + uniqueName + F("/config");
-        String stateTopic = config.MqttTopic + "/" + unique_entity_name(F("dhw_flow_temp_target")) + F("/state");
-        String cmdTopic = config.MqttTopic + "/" + uniqueName + F("/set");
+        String discoveryTopic = String(F("homeassistant/water_heater/")) + uniqueName + F("/config");
 
         DynamicJsonDocument payloadJson(8192);
         payloadJson[F("name")] = uniqueName;
@@ -418,15 +416,18 @@ off
 
         add_discovery_device_object(payloadJson);
 
-        payloadJson[F("stat_t")] = stateTopic;
-        payloadJson[F("stat_t_tpl")] = F("{{ value }}");
-        payloadJson[F("cmd_t")] = cmdTopic;
-        payloadJson[F("cmd_tpl")] = F("{{ value }}");
-        payloadJson[F("min")] = String(ehal::hp::get_min_dhw_temperature());
-        payloadJson[F("max")] = String(ehal::hp::get_max_dhw_temperature());
-        payloadJson[F("step")] = "0.5";
-        payloadJson[F("dev_cla")] = F("temperature");
-        payloadJson[F("unit_of_meas")] = F("°C");
+        payloadJson[F("curr_temp_t")] = config.MqttTopic + "/" + unique_entity_name(F("dhw_temp")) + F("/state");
+        payloadJson[F("temp_cmd_t")] = config.MqttTopic + "/" + uniqueName + F("/set");
+        payloadJson[F("temp_stat_t")] = config.MqttTopic + "/" + unique_entity_name(F("dhw_flow_temp_target")) + F("/state");
+        payloadJson[F("mode_stat_t")] = config.MqttTopic + "/" + unique_entity_name(F("mode_dhw")) + F("/state");
+        payloadJson[F("mode_stat_tpl")] = "{{ \"eco\" if value==\"Eco\" else \"performance\" }}";
+        payloadJson[F("min_temp")] = String(ehal::hp::get_min_dhw_temperature());
+        payloadJson[F("max_temp")] = String(ehal::hp::get_max_dhw_temperature());
+        JsonArray modes = payloadJson.createNestedArray(F("modes"));
+        modes.add("eco");
+        modes.add("performance");
+        payloadJson[F("temp_unit")] = "C";
+        payloadJson[F("precision")] = 0.5f;
 
         if (!publish_mqtt(discoveryTopic, payloadJson, /* retain =*/true))
         {
@@ -776,7 +777,7 @@ off
                 return false;
             }
 
-            if (!mqttClient.subscribe(config.MqttTopic + "/" + unique_entity_name(F("set_dhw_flow_temp_target")) + F("/set")))
+            if (!mqttClient.subscribe(config.MqttTopic + "/" + unique_entity_name(F("dhw_water_heater")) + F("/set")))
             {
                 log_web(F("Failed to subscribe to boost DHW command topic!"));
                 return false;
