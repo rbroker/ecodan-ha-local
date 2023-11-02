@@ -33,6 +33,7 @@ namespace ehal::mqtt
         LIVE_POWER,
         FREQUENCY,
         TEMPERATURE,
+        FLOW_RATE,
         COP
     };
 
