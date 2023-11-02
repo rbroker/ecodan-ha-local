@@ -33,6 +33,7 @@ namespace ehal::mqtt
         LIVE_POWER,
         FREQUENCY,
         TEMPERATURE,
+        FLOW_RATE,
         COP
     };
 
@@ -534,6 +535,12 @@ off
             payloadJson[F("dev_cla")] = F("frequency");
             break;
 
+        case SensorType::FLOW_RATE:
+            payloadJson[F("unit_of_meas")] = F("L/min");
+            payloadJson[F("icon")] = F("mdi:pump");
+            // payloadJson[F("dev_cla")] = F("water");
+            break;
+
         case SensorType::TEMPERATURE:
             payloadJson[F("unit_of_meas")] = F("°C");
             payloadJson[F("dev_cla")] = F("temperature");
@@ -611,6 +618,9 @@ off
             anyFailed = true;
 
         if (!publish_ha_float_sensor_auto_discover(F("compressor_frequency"), SensorType::FREQUENCY))
+            anyFailed = true;
+
+        if (!publish_ha_float_sensor_auto_discover(F("flow_rate"), SensorType::FLOW_RATE))
             anyFailed = true;
 
         if (!publish_ha_binary_sensor_auto_discover(F("mode_dhw_forced")))
@@ -738,6 +748,7 @@ off
         std::lock_guard<hp::Status> lock{status};
         publish_binary_sensor_status(F("mode_defrost"), status.DefrostActive);
         publish_sensor_status<float>(F("compressor_frequency"), status.CompressorFrequency);
+        publish_sensor_status<float>(F("flow_rate"), status.FlowRate);
         publish_binary_sensor_status(F("mode_dhw_forced"), status.DhwForcedActive);
         publish_sensor_status<float>(F("output_pwr"), status.OutputPower);
         publish_sensor_status<float>(F("legionella_prevention_temp"), status.LegionellaPreventionSetPoint);
