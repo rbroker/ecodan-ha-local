@@ -55,11 +55,13 @@ namespace ehal::hp
             ECO = 1
         };
 
-        enum class ShMode : uint8_t
+        enum class HpMode : uint8_t
         {
-            ROOM_TEMP = 0,
-            FLOW_TEMP = 1,
-            COMPENSATION_CURVE = 2
+            HEAT_ROOM_TEMP = 0,
+            HEAT_FLOW_TEMP = 1,
+            HEAT_COMPENSATION_CURVE = 2,
+            COOL_ROOM_TEMP = 3,
+            COOL_FLOW_TEMP = 4
         };
 
         // Modes
@@ -68,7 +70,7 @@ namespace ehal::hp
         bool HolidayMode;
         bool DhwTimerMode;
         DhwMode HotWaterMode;
-        ShMode HeatingMode;
+        HpMode HeatingCoolingMode;
 
         // Efficiency
         uint8_t CompressorFrequency;
@@ -162,16 +164,20 @@ namespace ehal::hp
             }
         }
 
-        String heating_mode_as_string()
+        String hp_mode_as_string()
         {
-            switch (HeatingMode)
+            switch (HeatingCoolingMode)
             {
-                case ShMode::ROOM_TEMP:
-                    return F("Target Temperature");
-                case ShMode::FLOW_TEMP:
-                    return F("Flow Temperature");
-                case ShMode::COMPENSATION_CURVE:
-                    return F("Compensation Curve");
+                case HpMode::HEAT_ROOM_TEMP:
+                    return F("Heat Target Temperature");
+                case HpMode::HEAT_FLOW_TEMP:
+                    return F("Heat Flow Temperature");
+                case HpMode::HEAT_COMPENSATION_CURVE:
+                    return F("Heat Compensation Curve");
+                case HpMode::COOL_ROOM_TEMP:
+                    return F("Cool Target Temperature");
+                case HpMode::COOL_FLOW_TEMP:
+                    return F("Cool Flow Temperature");                    
                 default:
                     return F("Unknown");
             }
@@ -192,9 +198,9 @@ namespace ehal::hp
             HotWaterMode = static_cast<DhwMode>(mode);
         }
 
-        void set_heating_mode(uint8_t mode)
+        void set_heating_cooling_mode(uint8_t mode)
         {
-            HeatingMode = static_cast<ShMode>(mode);
+            HeatingCoolingMode = static_cast<HpMode>(mode);
         }
 
         void lock()
@@ -224,7 +230,7 @@ namespace ehal::hp
     bool set_dhw_target_temperature(float value);
     bool set_dhw_mode(String mode);
     bool set_dhw_force(bool on);
-    bool set_sh_mode(uint8_t mode);
+    bool set_hp_mode(uint8_t mode);
 
     bool begin_connect();
     bool begin_update_status();

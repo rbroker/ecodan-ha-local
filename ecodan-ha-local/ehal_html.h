@@ -306,8 +306,8 @@ namespace ehal
         <td>{{mode_dhw_timer}}</td>
     </tr>
     <tr>
-        <td>Heating Mode:</td>
-        <td>{{mode_heating}}</td>
+        <td>Heating/Cooling Mode:</td>
+        <td>{{mode_heating_cooling}}</td>
     </tr>
     <tr>
         <td>DHW Mode:</td>

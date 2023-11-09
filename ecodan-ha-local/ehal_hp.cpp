@@ -385,10 +385,10 @@ namespace ehal::hp
         return true;
     }
 
-    bool set_sh_mode(uint8_t mode)
+    bool set_hp_mode(uint8_t mode)
     {
         Message cmd{MsgType::SET_CMD, SetType::BASIC_SETTINGS};
-        cmd[1] = SET_SETTINGS_FLAG_HEATING_MODE;
+        cmd[1] = SET_SETTINGS_FLAG_HP_MODE;
         cmd[6] = mode;
 
         {
@@ -398,7 +398,7 @@ namespace ehal::hp
 
         if (!dispatch_next_cmd())
         {
-            log_web(F("command dispatch failed for DHW force setting!"));
+            log_web(F("command dispatch failed for heat pump mode setting!"));
             return false;
         }
 
@@ -465,7 +465,7 @@ namespace ehal::hp
                 status.set_power_mode(res[3]);
                 status.set_operation_mode(res[4]);
                 status.set_dhw_mode(res[5]);
-                status.set_heating_mode(res[6]);
+                status.set_heating_cooling_mode(res[6]);
                 status.DhwFlowTemperatureSetPoint = res.get_float16(8);
                 status.RadiatorFlowTemperatureSetPoint = res.get_float16(12);
                 break;

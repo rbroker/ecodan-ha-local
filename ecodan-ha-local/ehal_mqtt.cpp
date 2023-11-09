@@ -165,17 +165,26 @@ off
     void on_mode_set_command(const String& payload)
     {
         uint8_t mode = -1;
-        if (payload == "Target Temperature")
+
+        if (payload == "Heat Target Temperature")
         {
-            mode = static_cast<uint8_t>(hp::Status::ShMode::ROOM_TEMP);
+            mode = static_cast<uint8_t>(hp::Status::HpMode::HEAT_ROOM_TEMP);
         }
-        else if (payload == "Flow Temperature")
+        else if (payload == "Heat Flow Temperature")
         {
-            mode = static_cast<uint8_t>(hp::Status::ShMode::FLOW_TEMP);
+            mode = static_cast<uint8_t>(hp::Status::HpMode::HEAT_FLOW_TEMP);
         }
-        else if (payload == "Compensation Curve")
+        else if (payload == "Heat Compensation Curve")
         {
-            mode = static_cast<uint8_t>(hp::Status::ShMode::COMPENSATION_CURVE);
+            mode = static_cast<uint8_t>(hp::Status::HpMode::HEAT_COMPENSATION_CURVE);
+        }
+        else if (payload == "Cool Target Temperature")
+        {
+            mode = static_cast<uint8_t>(hp::Status::HpMode::COOL_ROOM_TEMP);
+        }
+        else if (payload == "Cool Flow Temperature")
+        {
+            mode = static_cast<uint8_t>(hp::Status::HpMode::COOL_FLOW_TEMP);
         }
         else
         {
@@ -183,17 +192,17 @@ off
             return;
         }
 
-        if (!hp::set_sh_mode(mode))
+        if (!hp::set_hp_mode(mode))
         {
-            log_web(F("Failed to set space heating operation mode!"));
+            log_web(F("Failed to set hp heating coling operation mode!"));
         }
         else
         {
             auto& status = hp::get_status();
             std::lock_guard<hp::Status> lock{status};
-            status.set_heating_mode(mode);
+            status.set_heating_cooling_mode(mode);
 
-            publish_sensor_status<String>(F("mode_heating"), status.heating_mode_as_string());
+            publish_sensor_status<String>(F("mode_heating_cooling"), status.hp_mode_as_string());
         }
     }
 
@@ -507,12 +516,14 @@ off
 
         add_discovery_device_object(payloadJson);
 
-        payloadJson[F("stat_t")] = config.MqttTopic + "/" + unique_entity_name(F("mode_heating")) + F("/state");
+        payloadJson[F("stat_t")] = config.MqttTopic + "/" + unique_entity_name(F("mode_heating_cooling")) + F("/state");
         payloadJson[F("cmd_t")] = config.MqttTopic + "/" + unique_entity_name(F("sh_mode")) + F("/set");
         JsonArray options = payloadJson.createNestedArray(F("options"));
-        options.add("Target Temperature");
-        options.add("Flow Temperature");
-        options.add("Compensation Curve");
+        options.add("Heat Target Temperature");
+        options.add("Heat Flow Temperature");
+        options.add("Heat Compensation Curve");
+        options.add("Cool Target Temperature");
+        options.add("Cool Flow Temperature");
 
         if (!publish_mqtt(discoveryTopic, payloadJson, /* retain =*/true))
         {
@@ -723,7 +734,7 @@ off
         if (!publish_ha_string_sensor_auto_discover(F("mode_dhw")))
             anyFailed = true;
 
-        if (!publish_ha_string_sensor_auto_discover(F("mode_heating")))
+        if (!publish_ha_string_sensor_auto_discover(F("mode_heating_cooling")))
             anyFailed = true;
 
         if (!publish_ha_float_sensor_auto_discover(F("heating_consumed"), SensorType::POWER))
@@ -821,7 +832,7 @@ off
         publish_sensor_status<String>(F("mode_power"), status.power_as_string());
         publish_sensor_status<String>(F("mode_operation"), status.operation_as_string());
         publish_sensor_status<String>(F("mode_dhw"), status.dhw_mode_as_string());
-        publish_sensor_status<String>(F("mode_heating"), status.heating_mode_as_string());
+        publish_sensor_status<String>(F("mode_heating_cooling"), status.hp_mode_as_string());
         publish_sensor_status<float>(F("heating_consumed"), status.EnergyConsumedHeating);
         publish_sensor_status<float>(F("heating_delivered"), status.EnergyDeliveredHeating);
         publish_sensor_status<float>(F("dhw_consumed"), status.EnergyConsumedDhw);
