@@ -57,8 +57,8 @@ namespace ehal::hp
 
         enum class ShMode : uint8_t
         {
-            TEMPERATURE = 0,
-            FLOW_CONTROL = 1,
+            ROOM_TEMP = 0,
+            FLOW_TEMP = 1,
             COMPENSATION_CURVE = 2
         };
 
@@ -166,10 +166,10 @@ namespace ehal::hp
         {
             switch (HeatingMode)
             {
-                case ShMode::TEMPERATURE:
+                case ShMode::ROOM_TEMP:
                     return F("Target Temperature");
-                case ShMode::FLOW_CONTROL:
-                    return F("Flow Control");
+                case ShMode::FLOW_TEMP:
+                    return F("Flow Temperature");
                 case ShMode::COMPENSATION_CURVE:
                     return F("Compensation Curve");
                 default:
@@ -224,7 +224,7 @@ namespace ehal::hp
     bool set_dhw_target_temperature(float value);
     bool set_dhw_mode(String mode);
     bool set_dhw_force(bool on);
-    bool set_mode(const String& mode);
+    bool set_sh_mode(uint8_t mode);
 
     bool begin_connect();
     bool begin_update_status();

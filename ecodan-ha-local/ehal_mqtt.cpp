@@ -164,9 +164,36 @@ off
 
     void on_mode_set_command(const String& payload)
     {
-        if (!hp::set_mode(payload))
+        uint8_t mode = -1;
+        if (payload == "Target Temperature")
         {
-            log_web(F("Failed to set operation mode!"));
+            mode = static_cast<uint8_t>(hp::Status::ShMode::ROOM_TEMP);
+        }
+        else if (payload == "Flow Temperature")
+        {
+            mode = static_cast<uint8_t>(hp::Status::ShMode::FLOW_TEMP);
+        }
+        else if (payload == "Compensation Curve")
+        {
+            mode = static_cast<uint8_t>(hp::Status::ShMode::COMPENSATION_CURVE);
+        }
+        else
+        {
+            log_web(F("Unexpected mode requested: %s"), payload.c_str());
+            return;
+        }
+
+        if (!hp::set_sh_mode(mode))
+        {
+            log_web(F("Failed to set space heating operation mode!"));
+        }
+        else
+        {
+            auto& status = hp::get_status();
+            std::lock_guard<hp::Status> lock{status};
+            status.set_heating_mode(mode);
+
+            publish_sensor_status<String>(F("mode_heating"), status.heating_mode_as_string());
         }
     }
 
@@ -215,10 +242,10 @@ off
             auto& config = config_instance();
             String climateEntity = unique_entity_name(F("climate_control"));
             String tempCmdTopic = config.MqttTopic + "/" + climateEntity + F("/temp_cmd");
-            String modeCmdTopic = config.MqttTopic + "/" + climateEntity + F("/mode_cmd");
             String dhwForceCmdTopic = config.MqttTopic + "/" + unique_entity_name(F("force_dhw")) + F("/set");
             String dhwTempCmdTopic = config.MqttTopic + "/" + unique_entity_name(F("dhw_water_heater")) + F("/set");
             String dhwModeCmdTopic = config.MqttTopic + "/" + unique_entity_name(F("dhw_mode")) + F("/set");
+            String shModeCmdTopic = config.MqttTopic + "/" + unique_entity_name(F("sh_mode")) + F("/set");
 
             log_web(F("MQTT topic received: %s: '%s'"), topic.c_str(), payload.c_str());
             if (tempCmdTopic == topic)
@@ -229,7 +256,7 @@ off
             {
                 on_dhw_temperature_set_command(payload);
             }
-            else if (modeCmdTopic == topic)
+            else if (shModeCmdTopic == topic)
             {
                 on_mode_set_command(payload);
             }
@@ -350,7 +377,6 @@ off
         String discoveryTopic = String(F("homeassistant/climate/")) + uniqueName + F("/config");
         String stateTopic = config.MqttTopic + "/" + uniqueName + F("/state");
         String tempCmdTopic = config.MqttTopic + "/" + uniqueName + F("/temp_cmd");
-        String modeCmdTopic = config.MqttTopic + "/" + uniqueName + F("/mode_cmd");
 
         DynamicJsonDocument payloadJson(8192);
         payloadJson[F("name")] = uniqueName;
@@ -369,7 +395,6 @@ off
         payloadJson[F("curr_temp_tpl")] = get_current_temperature_status_template();
         payloadJson[F("temp_cmd_t")] = tempCmdTopic;
         payloadJson[F("temp_cmd_tpl")] = F("{{ value|float }}");
-        payloadJson[F("mode_cmt_t")] = modeCmdTopic;
         payloadJson[F("temp_cmd_tpl")] = F("{{ value }}");
 
         {
@@ -462,6 +487,36 @@ off
         if (!publish_mqtt(discoveryTopic, payloadJson, /* retain =*/true))
         {
             log_web(F("Failed to publish homeassistant DHW temperature set entity auto-discover"));
+            return false;
+        }
+
+        return true;
+    }
+
+    bool publish_ha_set_sh_mode_auto_discover()
+    {
+        // https://www.home-assistant.io/integrations/select.mqtt/
+        String uniqueName = unique_entity_name(F("sh_mode"));
+
+        const auto& config = config_instance();
+        String discoveryTopic = String(F("homeassistant/select/")) + uniqueName + F("/config");
+
+        DynamicJsonDocument payloadJson(8192);
+        payloadJson[F("name")] = uniqueName;
+        payloadJson[F("unique_id")] = uniqueName;
+
+        add_discovery_device_object(payloadJson);
+
+        payloadJson[F("stat_t")] = config.MqttTopic + "/" + unique_entity_name(F("mode_heating")) + F("/state");
+        payloadJson[F("cmd_t")] = config.MqttTopic + "/" + unique_entity_name(F("sh_mode")) + F("/set");
+        JsonArray options = payloadJson.createNestedArray(F("options"));
+        options.add("Target Temperature");
+        options.add("Flow Temperature");
+        options.add("Compensation Curve");
+
+        if (!publish_mqtt(discoveryTopic, payloadJson, /* retain =*/true))
+        {
+            log_web(F("Failed to publish homeassistant SH mode entity auto-discover"));
             return false;
         }
 
@@ -612,6 +667,9 @@ off
             anyFailed = true;
 
         if (!publish_ha_set_dhw_temp_auto_discover())
+            anyFailed = true;
+
+        if (!publish_ha_set_sh_mode_auto_discover())
             anyFailed = true;
 
         if (!publish_ha_binary_sensor_auto_discover(F("mode_defrost")))
@@ -823,9 +881,15 @@ off
                 return false;
             }
 
-             if (!mqttClient.subscribe(config.MqttTopic + "/" + unique_entity_name(F("dhw_mode")) + F("/set")))
+            if (!mqttClient.subscribe(config.MqttTopic + "/" + unique_entity_name(F("dhw_mode")) + F("/set")))
             {
                 log_web(F("Failed to subscribe to DHW mode command topic!"));
+                return false;
+            }
+
+            if (!mqttClient.subscribe(config.MqttTopic + "/" + unique_entity_name(F("sh_mode")) + F("/set")))
+            {
+                log_web(F("Failed to subscribe to SH mode command topic!"));
                 return false;
             }
 
