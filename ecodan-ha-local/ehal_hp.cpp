@@ -385,6 +385,38 @@ namespace ehal::hp
         return true;
     }
 
+    bool set_heating_mode(String mode)
+    {
+        Status::ShMode heatingMode = Status::ShMode::COMPENSATION_CURVE;
+
+        if (mode == "target_temperature")
+            heatingMode = Status::ShMode::TEMPERATURE;
+        else if (mode == "flow_control")
+            heatingMode = Status::ShMode::FLOW_CONTROL;
+        else if (mode == "compensation_curve")
+            heatingMode = Status::ShMode::COMPENSATION_CURVE;
+        else
+            return false;
+
+        Message cmd{MsgType::SET_CMD, SetType::BASIC_SETTINGS};
+        cmd[1] = SET_SETTINGS_FLAG_HEATING_MODE;
+        // Zone 1 is command 6
+        cmd[6] = static_cast<uint8_t>(heatingMode);
+
+        {
+            std::lock_guard<std::mutex>{cmdQueueMutex};
+            cmdQueue.emplace(std::move(cmd));
+        }
+
+        if (!dispatch_next_cmd())
+        {
+            log_web(F("command dispatch failed for heating mode setting!"));
+            return false;
+        }
+
+        return true;
+    }
+
     bool set_mode(const String& mode)
     {
         return true;

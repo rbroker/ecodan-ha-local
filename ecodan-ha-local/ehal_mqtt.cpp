@@ -208,6 +208,27 @@ off
         }
     }
 
+    void on_heating_mode_set_command(const String& payload)
+    {
+        if (!hp::set_heating_mode(payload))
+        {
+            log_web(F("Failed to set heating mode!"));
+        }
+        else
+        {
+            auto& status = hp::get_status();
+            std::lock_guard<hp::Status> lock{status};
+            if (payload == "target_temperature")
+                status.HeatingMode = hp::Status::ShMode::TEMPERATURE;
+            else if (payload == "flow_control")
+                status.HeatingMode = hp::Status::ShMode::FLOW_CONTROL;
+            else if (payload == "compensation_curve")
+                status.HeatingMode = hp::Status::ShMode::COMPENSATION_CURVE;
+
+            publish_sensor_status<String>(F("mode_heating"), status.heating_mode_as_string());
+        }
+    }
+
     void mqtt_callback(String& topic, String& payload)
     {
         try
@@ -219,6 +240,7 @@ off
             String dhwForceCmdTopic = config.MqttTopic + "/" + unique_entity_name(F("force_dhw")) + F("/set");
             String dhwTempCmdTopic = config.MqttTopic + "/" + unique_entity_name(F("dhw_water_heater")) + F("/set");
             String dhwModeCmdTopic = config.MqttTopic + "/" + unique_entity_name(F("dhw_mode")) + F("/set");
+            String heatingModeCmdTopic = config.MqttTopic + "/" + unique_entity_name(F("heating_mode")) + F("/set");
 
             log_web(F("MQTT topic received: %s: '%s'"), topic.c_str(), payload.c_str());
             if (tempCmdTopic == topic)
@@ -240,6 +262,10 @@ off
             else if (dhwForceCmdTopic == topic)
             {
                 on_force_dhw_command(payload);
+            }
+            else if (heatingModeCmdTopic == topic)
+            {
+                on_heating_mode_set_command(payload);
             }
         }
         catch (std::exception const& ex)
@@ -468,6 +494,37 @@ off
         return true;
     }
 
+    bool publish_ha_set_heating_mode_auto_discover()
+    {
+        // https://www.home-assistant.io/integrations/water_heater.mqtt/
+        String uniqueName = unique_entity_name(F("heating_mode"));
+
+        const auto& config = config_instance();
+        String discoveryTopic = String(F("homeassistant/select/")) + uniqueName + F("/config");
+
+        DynamicJsonDocument payloadJson(8192);
+        payloadJson[F("name")] = uniqueName;
+        payloadJson[F("unique_id")] = uniqueName;
+
+        add_discovery_device_object(payloadJson);
+
+        payloadJson[F("cmd_t")] = config.MqttTopic + "/" + unique_entity_name(F("heating_mode")) + F("/set");
+                payloadJson[F("stat_t")] = config.MqttTopic + "/" + unique_entity_name(F("heating_mode")) + F("/state");
+        payloadJson[F("stat_tpl")] = "{% if value==\"Temperature\" %} target_temperature {% elif value==\"Flow Control\" %} flow_control {% else %} compensation_curve {% endif %}";
+        JsonArray options = payloadJson.createNestedArray(F("options"));
+        options.add("target_temperature");
+        options.add("flow_control");
+        options.add("compensation_curve");
+
+        if (!publish_mqtt(discoveryTopic, payloadJson, /* retain =*/true))
+        {
+            log_web(F("Failed to publish homeassistant heating mode set entity auto-discover"));
+            return false;
+        }
+
+        return true;
+    }
+
     bool publish_ha_binary_sensor_auto_discover(const String& name)
     {
         const auto& config = config_instance();
@@ -612,6 +669,9 @@ off
             anyFailed = true;
 
         if (!publish_ha_set_dhw_temp_auto_discover())
+            anyFailed = true;
+        
+        if (!publish_ha_set_heating_mode_auto_discover())
             anyFailed = true;
 
         if (!publish_ha_binary_sensor_auto_discover(F("mode_defrost")))

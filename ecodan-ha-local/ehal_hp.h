@@ -224,6 +224,7 @@ namespace ehal::hp
     bool set_dhw_target_temperature(float value);
     bool set_dhw_mode(String mode);
     bool set_dhw_force(bool on);
+    bool set_heating_mode(String mode);
     bool set_mode(const String& mode);
 
     bool begin_connect();
