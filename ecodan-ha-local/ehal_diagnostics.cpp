@@ -1,3 +1,4 @@
+#include <cmath>
 #include "ehal_diagnostics.h"
 #include "ehal_thirdparty.h"
 #include "esp_err.h"
@@ -11,9 +12,12 @@
 #include <memory>
 #include <mutex>
 
+#if ARDUINO_ARCH_ESP32
+#include <esp_task_wdt.h>
+#endif
+
 #if CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32C3
 #include <driver/temp_sensor.h>
-#include <esp_task_wdt.h>
 #endif
 
 namespace ehal
@@ -143,21 +147,22 @@ namespace ehal
 
     void init_watchdog()
     {
-#if CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32C3
+#if ARDUINO_ARCH_ESP32
         esp_task_wdt_init(30, true); // Reset the board if the watchdog timer isn't reset every 30s.
+        ehal::log_web(F("Watchdog initialized."));
 #endif
     }
 
     void add_thread_to_watchdog()
     {
-#if CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32C3
+#if ARDUINO_ARCH_ESP32
         esp_task_wdt_add(nullptr);
 #endif
     }
 
     void ping_watchdog()
     {
-#if CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32C3
+#if ARDUINO_ARCH_ESP32
         esp_task_wdt_reset();
 #endif
     }
