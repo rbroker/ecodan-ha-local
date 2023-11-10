@@ -162,6 +162,12 @@ namespace ehal::http
         else
             page.replace(F("{{dump_pkt}}"), "");
 
+        // Heat pump config
+        if (config.CoolEnabled)
+            page.replace(F("{{cool_enabled}}"), F("checked"));
+        else
+            page.replace(F("{{cool_enabled}}"), "");
+
         page.replace(F("{{wifi_ssid}}"), config.WifiSsid);
         page.replace(F("{{wifi_pw}}"), config.WifiPassword);
         page.replace(F("{{hostname}}"), config.HostName);
@@ -196,6 +202,11 @@ namespace ehal::http
             config.DumpPackets = true;
         else
             config.DumpPackets = false;
+        
+        if (server.hasArg(F("cool_enabled")))
+            config.CoolEnabled = true;
+        else
+            config.CoolEnabled = false;
 
         config.WifiSsid = server.arg(F("wifi_ssid"));
         config.WifiPassword = server.arg(F("wifi_pw"));

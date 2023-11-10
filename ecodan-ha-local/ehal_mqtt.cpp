@@ -522,8 +522,10 @@ off
         options.add("Heat Target Temperature");
         options.add("Heat Flow Temperature");
         options.add("Heat Compensation Curve");
-        options.add("Cool Target Temperature");
-        options.add("Cool Flow Temperature");
+        if (config.CoolEnabled) {
+          options.add("Cool Target Temperature");
+          options.add("Cool Flow Temperature");
+        }
 
         if (!publish_mqtt(discoveryTopic, payloadJson, /* retain =*/true))
         {

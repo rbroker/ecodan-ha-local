@@ -70,6 +70,12 @@ namespace ehal
         <input class="column column-75" type="checkbox" id="dump_pkt" name="dump_pkt" {{dump_pkt}} />
     </div>
     <br />
+    <h2>Heat Pump Configuration:</h2>
+    <div class="row">
+        <label class="column column-25" for="cool_enabled">Cool mode:</label>
+        <input class="column column-75" type="checkbox" id="cool_enabled" name="cool_enabled" {{cool_enabled}} />
+    </div>
+    <br />
     <h2>WiFi Configuration:</h2>
     <div class="row">
         <label  class="column column-25" for="wifi_ssid">WiFi SSID:</label>     

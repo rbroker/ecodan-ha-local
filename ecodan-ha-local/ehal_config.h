@@ -12,6 +12,7 @@ namespace ehal
         uint16_t SerialTxPort;
         uint16_t StatusLed;
         bool DumpPackets;
+        bool CoolEnabled;
         String WifiSsid;
         String WifiPassword;
         String HostName;
