@@ -162,6 +162,12 @@ namespace ehal::http
         else
             page.replace(F("{{dump_pkt}}"), "");
 
+        // Heat pump config
+        if (config.CoolEnabled)
+            page.replace(F("{{cool_enabled}}"), F("checked"));
+        else
+            page.replace(F("{{cool_enabled}}"), "");
+
         page.replace(F("{{wifi_ssid}}"), config.WifiSsid);
         page.replace(F("{{wifi_pw}}"), config.WifiPassword);
         page.replace(F("{{hostname}}"), config.HostName);
@@ -196,6 +202,11 @@ namespace ehal::http
             config.DumpPackets = true;
         else
             config.DumpPackets = false;
+        
+        if (server.hasArg(F("cool_enabled")))
+            config.CoolEnabled = true;
+        else
+            config.CoolEnabled = false;
 
         config.WifiSsid = server.arg(F("wifi_ssid"));
         config.WifiPassword = server.arg(F("wifi_pw"));
@@ -376,7 +387,7 @@ namespace ehal::http
             page.replace(F("{{defrost}}"), bool_to_emoji(status.DefrostActive));
             page.replace(F("{{dhw_forced}}"), bool_to_emoji(status.DhwForcedActive));
             page.replace(F("{{mode_dhw_timer}}"), bool_to_emoji(status.DhwTimerMode));
-            page.replace(F("{{mode_heating}}"), status.heating_mode_as_string());
+            page.replace(F("{{mode_heating_cooling}}"), status.hp_mode_as_string());
             page.replace(F("{{mode_dhw}}"), status.dhw_mode_as_string());
 
             page.replace(F("{{min_flow_temp}}"), String(status.MinimumFlowTemperature));

@@ -25,6 +25,7 @@ namespace ehal
         config.SerialTxPort = prefs.getUShort("serial_tx", 26U);
         config.StatusLed = prefs.getUShort("status_led", LED_BUILTIN);
         config.DumpPackets = prefs.getBool("dump_pkt", false);
+        config.CoolEnabled = prefs.getBool("cool_enabled", false);
         config.HostName = prefs.getString("hostname", "ecodan_ha_local");
         config.WifiSsid = prefs.getString("wifi_ssid");
         config.WifiPassword = prefs.getString("wifi_pw");
@@ -48,7 +49,8 @@ namespace ehal
         prefs.putUShort("serial_rx", config.SerialRxPort);
         prefs.putUShort("serial_tx", config.SerialTxPort);  
         prefs.putUShort("status_led", config.StatusLed);
-        prefs.putBool("dump_pkt", config.DumpPackets);    
+        prefs.putBool("dump_pkt", config.DumpPackets);
+        prefs.putBool("cool_enabled", config.CoolEnabled);  
         prefs.putString("wifi_ssid", config.WifiSsid);
         prefs.putString("wifi_pw", config.WifiPassword);
         prefs.putString("hostname", config.HostName);
@@ -80,7 +82,7 @@ namespace ehal
 
     String get_software_version()
     {
-        return FPSTR("v0.1.1");
+        return FPSTR("v0.1.2");
     }
 
 } // namespace ehal
