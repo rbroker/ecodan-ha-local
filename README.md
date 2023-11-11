@@ -71,6 +71,12 @@ The GPIO pin number which should be used for the status LED. The following flash
 | ----------- | -------- |
 | LED_BUILTIN | No       |
 
+### Heat Pump Configuration
+Some parameters of your Mitsubishi Ecodan HVAC
+| Parameter   | Description | Default  |
+| ----------- | ------------| -------- |
+| `Cool enabled` | Check this option if your ecodan has cool working mode. Enable setting cool mode from Home Assistant | False |
+
 ### Dump Serial Packets
 Dump packets sent to/received from the heat pump to the diagnostic log window on the Diagnostics page.
 
@@ -137,6 +143,7 @@ The topic value which the server should use to filter messages related to this h
 | Default     | Required |
 | ----------- | -------- |
 | `ecodan_hp` | Yes      |
+
 
 ## See Also
 There are a number of existing solutions for connecting to Mitsubish heat pump models via the CN105 connector, I wouldn't have been able to put this together without work already done here:
