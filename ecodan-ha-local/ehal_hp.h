@@ -44,7 +44,8 @@ namespace ehal::hp
         {
             OFF = 0,
             DHW_ON = 1,
-            SH_ON = 2,
+            SH_ON = 2, // Heating
+            COOL_ON = 3, // Cooling
             FROST_PROTECT = 5,
             LEGIONELLA_PREVENTION = 6
         };
@@ -86,7 +87,19 @@ namespace ehal::hp
             switch (Power)
             {
                 case PowerMode::ON:
-                    return F("heat");
+                    switch (HeatingCoolingMode)
+                    {
+                      case HpMode::HEAT_ROOM_TEMP:
+                          [[fallthrough]]
+                      case HpMode::HEAT_FLOW_TEMP:
+                          [[fallthrough]]
+                      case HpMode::HEAT_COMPENSATION_CURVE:
+                          return F("heat");
+                      case HpMode::COOL_ROOM_TEMP:
+                          [[fallthrough]]
+                      case HpMode::COOL_FLOW_TEMP:
+                          return F("cool");                                                                   
+                    }                    
                 default:
                     return F("off");
             }
@@ -98,9 +111,10 @@ namespace ehal::hp
             {
                 case OperationMode::SH_ON:
                     [[fallthrough]]
-                case OperationMode::FROST_PROTECT:
+                case OperationMode::FROST_PROTECT:                    
                     return F("heating");
-
+                case OperationMode::COOL_ON:
+                    return F("cooling");                        
                 case OperationMode::OFF:
                     [[fallthrough]]
                 case OperationMode::DHW_ON:
@@ -131,8 +145,10 @@ namespace ehal::hp
                     return F("Off");
                 case OperationMode::DHW_ON:
                     return F("Heating Water");
-                case OperationMode::SH_ON:
+                case OperationMode::SH_ON:                  
                     return F("Space Heating");
+                case OperationMode::COOL_ON:                  
+                    return F("Space Cooling");                        
                 case OperationMode::FROST_PROTECT:
                     return F("Frost Protection");
                 case OperationMode::LEGIONELLA_PREVENTION:
