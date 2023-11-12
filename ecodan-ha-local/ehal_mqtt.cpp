@@ -247,6 +247,7 @@ off
     void on_turn_on_off_command(const String& payload)    
     {
       bool turnON = payload == "ON";
+      
       if (!hp::set_power_mode(turnON))
         {
             log_web(F("Failed to set power mode!"));
@@ -255,6 +256,14 @@ off
         {
             auto& status = hp::get_status();
             std::lock_guard<hp::Status> lock{status};
+            if (turnON) 
+            {
+                status.Power = hp::Status::PowerMode::ON;
+            } 
+            else 
+            {
+                status.Power = hp::Status::PowerMode::STANDBY;
+            }
             publish_sensor_status<String>(F("mode_power"), status.power_as_string());
         }
     }
@@ -502,8 +511,8 @@ off
 
         payloadJson[F("stat_t")] = stateTopic;
         payloadJson[F("stat_t_tpl")] = F("{{ value }}");
-        payloadJson[F("stat_on")] = F("on");
-        payloadJson[F("stat_off")] = F("off");
+        payloadJson[F("stat_on")] = F("On");
+        payloadJson[F("stat_off")] = F("Standby");
         payloadJson[F("cmd_t")] = cmdTopic;
         payloadJson[F("cmd_tpl")] = F("{{ value }}");
 
