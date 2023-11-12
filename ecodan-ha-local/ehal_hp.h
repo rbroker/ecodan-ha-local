@@ -246,6 +246,7 @@ namespace ehal::hp
     bool set_dhw_target_temperature(float value);
     bool set_dhw_mode(String mode);
     bool set_dhw_force(bool on);
+    bool set_power_mode(bool on);
     bool set_hp_mode(uint8_t mode);
 
     bool begin_connect();

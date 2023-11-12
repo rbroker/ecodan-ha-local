@@ -385,6 +385,25 @@ namespace ehal::hp
         return true;
     }
 
+    bool set_power_mode(bool on)
+    {
+        Message cmd{MsgType::SET_CMD, SetType::BASIC_SETTINGS};
+        cmd[1] = SET_SETTINGS_FLAG_SYSTEM_MODE_POWER;
+        cmd[3] = on ? 1 : 0;
+        {
+            std::lock_guard<std::mutex>{cmdQueueMutex};
+            cmdQueue.emplace(std::move(cmd));
+        }
+
+        if (!dispatch_next_cmd())
+        {
+            log_web(F("command dispatch failed for DHW force setting!"));
+            return false;
+        }
+
+        return true;
+    }
+
     bool set_hp_mode(uint8_t mode)
     {
         Message cmd{MsgType::SET_CMD, SetType::BASIC_SETTINGS};
