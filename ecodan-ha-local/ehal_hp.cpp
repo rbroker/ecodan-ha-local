@@ -388,10 +388,10 @@ namespace ehal::hp
     bool set_power_mode(bool on)
     {
         Message cmd{MsgType::SET_CMD, SetType::BASIC_SETTINGS};
-        cmd[1] = SET_SETTINGS_FLAG_SYSTEM_MODE_POWER;
+        cmd[1] = SET_SETTINGS_FLAG_MODE_TOGGLE;
         cmd[3] = on ? 1 : 0;
         {
-            std::lock_guard<std::mutex>{cmdQueueMutex};
+            std::lock_guard<std::mutex> lock{cmdQueueMutex};            
             cmdQueue.emplace(std::move(cmd));
         }
 
