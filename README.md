@@ -1,7 +1,42 @@
 # ecodan-ha-local
 ESP32 compatible program for local monitoring of Mitsubishi Ecodan Air to Water heat pumps with automatic discovery in HomeAssistant.
 
-Uses the CN105 connector on the Cased Flow Temp Controller (FTC6 in my setup) to do very basic control (zone 1 temperature set point, DHW temperature set point, boost DHW) + retrieve basic sensor information from the heat pump.
+Uses the CN105 connector on the Cased Flow Temp Controller (FTC6 in my setup) to do basic control.
+
+## Controls implemented
+- Manage Zone 1 climate. Temperature set point. Actual temperature.
+- Heat pump mode selector. You can select the working mode (heat and cool): `Space room temperature`, `Flow temperature` or `Compensation curve`.
+- Manage water boiler. Configure temperature set point and its modes (eco or normal).
+- Control to boost DHW.
+- Control to turn ON and turn OFF ecodan.
+
+## Sensors information retreived
+- Defrost mode
+- Compressor frequency
+- Pump flow rate
+- Boost DHW mode
+- Output power
+- Legionella prevention temperature setting
+- Zone 1 room temperature
+- Zone 2 room temperature
+- Dhw current temperature
+- Dhw temperature target
+- Dhw temperature drop
+- Outside temperature
+- Heat pump feed temperature
+- Heat pump return temperature
+- Boiler flow temperature
+- Boiler return temperature
+- Power mode
+- Operation mode
+- DHW mode
+- Heating/Cooling working mode
+- Heating consumed energy
+- Heating delivered energy
+- DHW consumed energy
+- DHW delivered energy
+- COP of space heating
+- COP of DHW
 
 <p float="left">
   <img src="img/config_page.png" height="640" />
@@ -15,6 +50,10 @@ Uses the CN105 connector on the Cased Flow Temp Controller (FTC6 in my setup) to
   - Will almost certainly exceed the memory budgets on an ESP8266, as I've not been super careful about memory usage.
 - CN105 female connector + pigtails, as described [here](https://github.com/SwiCago/HeatPump#Demo-Circuit).
   - Note: The software is configured to use Serial UART1 on the ESP32, explicitly labelled TX/RX pins on a pinout will usually be pre-assigned to UART0.
+
+## ESP32 Boards tested
+- LOLIN S2 Mini
+- WROOM-32
 
 ## Library Dependencies
 - ArduinoJson v6.21.2

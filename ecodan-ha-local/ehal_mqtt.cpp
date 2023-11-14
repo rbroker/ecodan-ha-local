@@ -244,6 +244,30 @@ off
         }
     }
 
+    void on_turn_on_off_command(const String& payload)    
+    {
+      bool turnON = payload == "ON";
+      
+      if (!hp::set_power_mode(turnON))
+        {
+            log_web(F("Failed to set power mode!"));
+        }
+        else
+        {
+            auto& status = hp::get_status();
+            std::lock_guard<hp::Status> lock{status};
+            if (turnON) 
+            {
+                status.Power = hp::Status::PowerMode::ON;
+            } 
+            else 
+            {
+                status.Power = hp::Status::PowerMode::STANDBY;
+            }
+            publish_sensor_status<String>(F("mode_power"), status.power_as_string());
+        }
+    }
+
     void mqtt_callback(String& topic, String& payload)
     {
         try
@@ -252,6 +276,7 @@ off
             String climateEntity = unique_entity_name(F("climate_control"));
             String tempCmdTopic = config.MqttTopic + "/" + climateEntity + F("/temp_cmd");
             String dhwForceCmdTopic = config.MqttTopic + "/" + unique_entity_name(F("force_dhw")) + F("/set");
+            String turnOnOffCmdTopic = config.MqttTopic + "/" + unique_entity_name(F("turn_on_off_hp")) + F("/set");
             String dhwTempCmdTopic = config.MqttTopic + "/" + unique_entity_name(F("dhw_water_heater")) + F("/set");
             String dhwModeCmdTopic = config.MqttTopic + "/" + unique_entity_name(F("dhw_mode")) + F("/set");
             String shModeCmdTopic = config.MqttTopic + "/" + unique_entity_name(F("sh_mode")) + F("/set");
@@ -276,6 +301,10 @@ off
             else if (dhwForceCmdTopic == topic)
             {
                 on_force_dhw_command(payload);
+            }
+            else if (turnOnOffCmdTopic == topic)
+            {
+                on_turn_on_off_command(payload);
             }
         }
         catch (std::exception const& ex)
@@ -457,6 +486,39 @@ off
         if (!publish_mqtt(discoveryTopic, payloadJson, /* retain =*/true))
         {
             log_web(F("Failed to publish homeassistant force DHW entity auto-discover"));
+            return false;
+        }
+
+        return true;
+    }
+
+    bool publish_ha_turn_on_off_auto_discover()
+    {
+        // https://www.home-assistant.io/integrations/switch.mqtt/
+        String uniqueName = unique_entity_name(F("turn_on_off_hp"));
+
+        const auto& config = config_instance();
+        String discoveryTopic = String(F("homeassistant/switch/")) + uniqueName + F("/config");
+        String stateTopic = config.MqttTopic + "/" + unique_entity_name(F("mode_power")) + F("/state");
+        String cmdTopic = config.MqttTopic + "/" + uniqueName + F("/set");
+
+        DynamicJsonDocument payloadJson(8192);
+        payloadJson[F("name")] = uniqueName;
+        payloadJson[F("unique_id")] = uniqueName;
+        payloadJson[F("icon")] = F("mdi:power");
+
+        add_discovery_device_object(payloadJson);
+
+        payloadJson[F("stat_t")] = stateTopic;
+        payloadJson[F("stat_t_tpl")] = F("{{ value }}");
+        payloadJson[F("stat_on")] = F("On");
+        payloadJson[F("stat_off")] = F("Standby");
+        payloadJson[F("cmd_t")] = cmdTopic;
+        payloadJson[F("cmd_tpl")] = F("{{ value }}");
+
+        if (!publish_mqtt(discoveryTopic, payloadJson, /* retain =*/true))
+        {
+            log_web(F("Failed to publish homeassistant turn On/Off HP entity auto-discover"));
             return false;
         }
 
@@ -679,6 +741,9 @@ off
         if (!publish_ha_force_dhw_auto_discover())
             anyFailed = true;
 
+        if (!publish_ha_turn_on_off_auto_discover())    
+            anyFailed = true;
+
         if (!publish_ha_set_dhw_temp_auto_discover())
             anyFailed = true;
 
@@ -885,6 +950,12 @@ off
             if (!mqttClient.subscribe(config.MqttTopic + "/" + unique_entity_name(F("force_dhw")) + F("/set")))
             {
                 log_web(F("Failed to subscribe to boost DHW command topic!"));
+                return false;
+            }
+
+            if (!mqttClient.subscribe(config.MqttTopic + "/" + unique_entity_name(F("turn_on_off_hp")) + F("/set")))
+            {
+                log_web(F("Failed to subscribe to turn ON/OFF command topic!"));
                 return false;
             }
 
