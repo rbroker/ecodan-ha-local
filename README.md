@@ -9,6 +9,7 @@ Uses the CN105 connector on the Cased Flow Temp Controller (FTC6 in my setup) to
 - Manage water boiler. Configure temperature set point and its modes (eco or normal).
 - Control to boost DHW.
 - Control to turn ON and turn OFF ecodan.
+- Control to set point zone flow temperature target.
 
 ## Sensors information retreived
 - Defrost mode
@@ -18,7 +19,9 @@ Uses the CN105 connector on the Cased Flow Temp Controller (FTC6 in my setup) to
 - Output power
 - Legionella prevention temperature setting
 - Zone 1 room temperature
+- Zone 1 flow temperature target 
 - Zone 2 room temperature
+- Zone 2 flow temperature target
 - Dhw current temperature
 - Dhw temperature target
 - Dhw temperature drop

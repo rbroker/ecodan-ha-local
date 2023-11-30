@@ -302,6 +302,53 @@ namespace ehal::hp
         return 60.0f;
     }
 
+    // From FTC6 installation manual ("Zone heating/cooling min. temp.")
+    float get_min_flow_target_temperature(String mode)
+    {
+        String coolMode = "Cool Flow Temperature";
+        return (coolMode == mode) ? 5.0f : 20.0f;
+    }
+
+    float get_max_flow_target_temperature(String mode)
+    {
+        String coolMode = "Cool Flow Temperature";
+        return (coolMode == mode) ? 25.0f : 60.0f;
+    }
+
+    bool set_z1_flow_target_temperature(float newTemp)
+    {
+        if (newTemp > get_max_flow_target_temperature(status.hp_mode_as_string()))
+        {
+            log_web(F("Z1 flow temperature setting exceeds maximum allowed (%s)!"), String(get_max_flow_target_temperature(status.hp_mode_as_string())).c_str());
+            return false;
+        }
+
+        if (newTemp < get_min_flow_target_temperature(status.hp_mode_as_string()))
+        {
+            log_web(F("Z1 flow temperature setting is lower than minimum allowed (%s)!"), String(get_min_flow_target_temperature(status.hp_mode_as_string())).c_str());
+            return false;
+        }
+
+        Message cmd{MsgType::SET_CMD, SetType::BASIC_SETTINGS};
+        cmd[1] = SET_SETTINGS_FLAG_ZONE_TEMPERATURE;
+        cmd[2] = static_cast<uint8_t>(SetZone::ZONE_1);
+        cmd[6] = static_cast<uint8_t>(SetHpMode::FLOW_CONTROL_MODE);
+        cmd.set_float16(newTemp, 10);
+
+        {
+            std::lock_guard<std::mutex>{cmdQueueMutex};
+            cmdQueue.emplace(std::move(cmd));
+        }
+
+        if (!dispatch_next_cmd())
+        {
+            log_web(F("command dispatch failed for Z1 flow target temperature setting!"));
+            return false;
+        }
+
+        return true;
+    }
+
     bool set_dhw_target_temperature(float newTemp)
     {
         if (newTemp > get_max_dhw_temperature())

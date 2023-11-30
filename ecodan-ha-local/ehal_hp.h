@@ -241,8 +241,11 @@ namespace ehal::hp
     float get_max_thermostat_temperature();
     float get_min_dhw_temperature();
     float get_max_dhw_temperature();
+    float get_min_flow_target_temperature(String mode);
+    float get_max_flow_target_temperature(String mode);
 
     bool set_z1_target_temperature(float value);
+    bool set_z1_flow_target_temperature(float value);
     bool set_dhw_target_temperature(float value);
     bool set_dhw_mode(String mode);
     bool set_dhw_force(bool on);
