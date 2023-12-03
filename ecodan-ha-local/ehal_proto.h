@@ -34,7 +34,14 @@ namespace ehal::hp
         ZONE_1,
         ZONE_2,
         BOTH
-    };    
+    };
+
+    enum class SetHpMode
+    {
+        TEMPERATURE_MODE,
+        FLOW_CONTROL_MODE,
+        COMPENSATION_CURVE_MODE
+    };
 
     enum class GetType : uint8_t
     {
