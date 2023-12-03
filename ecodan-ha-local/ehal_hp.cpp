@@ -278,7 +278,7 @@ namespace ehal::hp
         cmd.set_float16(newTemp, 10);
 
         {
-            std::lock_guard<std::mutex>{cmdQueueMutex};
+            std::lock_guard<std::mutex> lock{cmdQueueMutex};
             cmdQueue.emplace(std::move(cmd));
         }
 
@@ -336,7 +336,7 @@ namespace ehal::hp
         cmd.set_float16(newTemp, 10);
 
         {
-            std::lock_guard<std::mutex>{cmdQueueMutex};
+            std::lock_guard<std::mutex> lock{cmdQueueMutex};
             cmdQueue.emplace(std::move(cmd));
         }
 
@@ -368,7 +368,7 @@ namespace ehal::hp
         cmd.set_float16(newTemp, 8);
 
         {
-            std::lock_guard<std::mutex>{cmdQueueMutex};
+            std::lock_guard<std::mutex> lock{cmdQueueMutex};
             cmdQueue.emplace(std::move(cmd));
         }
 
@@ -399,7 +399,7 @@ namespace ehal::hp
         cmd[5] = static_cast<uint8_t>(dhwMode);
 
         {
-            std::lock_guard<std::mutex>{cmdQueueMutex};
+            std::lock_guard<std::mutex> lock{cmdQueueMutex};
             cmdQueue.emplace(std::move(cmd));
         }
 
@@ -419,7 +419,7 @@ namespace ehal::hp
         cmd[3] = on ? 1 : 0; // bit[3] of payload is DHW force, bit[2] is Holiday mode.
 
         {
-            std::lock_guard<std::mutex>{cmdQueueMutex};
+            std::lock_guard<std::mutex> lock{cmdQueueMutex};
             cmdQueue.emplace(std::move(cmd));
         }
 
@@ -458,7 +458,7 @@ namespace ehal::hp
         cmd[6] = mode;
 
         {
-            std::lock_guard<std::mutex>{cmdQueueMutex};
+            std::lock_guard<std::mutex> lock{cmdQueueMutex};
             cmdQueue.emplace(std::move(cmd));
         }
 
