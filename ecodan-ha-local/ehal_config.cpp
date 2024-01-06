@@ -20,12 +20,13 @@ namespace ehal
         prefs.begin("config", true);
 
         Config& config = config_instance();
-        config.DevicePassword = prefs.getString("device_pw");     
+        config.DevicePassword = prefs.getString("device_pw");
         config.SerialRxPort = prefs.getUShort("serial_rx", 27U);
         config.SerialTxPort = prefs.getUShort("serial_tx", 26U);
         config.StatusLed = prefs.getUShort("status_led", LED_BUILTIN);
         config.DumpPackets = prefs.getBool("dump_pkt", false);
         config.CoolEnabled = prefs.getBool("cool_enabled", false);
+        config.WifiReset = prefs.getBool("wifi_reset", true);
         config.HostName = prefs.getString("hostname", "ecodan_ha_local");
         config.WifiSsid = prefs.getString("wifi_ssid");
         config.WifiPassword = prefs.getString("wifi_pw");
@@ -45,12 +46,13 @@ namespace ehal
     {
         Preferences prefs;
         prefs.begin("config", /* readonly = */ false);
-        prefs.putString("device_pw", config.DevicePassword);  
+        prefs.putString("device_pw", config.DevicePassword);
         prefs.putUShort("serial_rx", config.SerialRxPort);
-        prefs.putUShort("serial_tx", config.SerialTxPort);  
+        prefs.putUShort("serial_tx", config.SerialTxPort);
         prefs.putUShort("status_led", config.StatusLed);
         prefs.putBool("dump_pkt", config.DumpPackets);
-        prefs.putBool("cool_enabled", config.CoolEnabled);  
+        prefs.putBool("cool_enabled", config.CoolEnabled);
+        prefs.putBool("wifi_reset", config.WifiReset);
         prefs.putString("wifi_ssid", config.WifiSsid);
         prefs.putString("wifi_pw", config.WifiPassword);
         prefs.putString("hostname", config.HostName);
@@ -82,7 +84,7 @@ namespace ehal
 
     String get_software_version()
     {
-        return FPSTR("v0.1.4");
+        return FPSTR("v0.1.5");
     }
 
 } // namespace ehal

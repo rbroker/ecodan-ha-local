@@ -438,7 +438,7 @@ namespace ehal::hp
         cmd[1] = SET_SETTINGS_FLAG_MODE_TOGGLE;
         cmd[3] = on ? 1 : 0;
         {
-            std::lock_guard<std::mutex> lock{cmdQueueMutex};            
+            std::lock_guard<std::mutex> lock{cmdQueueMutex};
             cmdQueue.emplace(std::move(cmd));
         }
 

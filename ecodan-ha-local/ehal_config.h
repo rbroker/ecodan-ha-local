@@ -13,6 +13,7 @@ namespace ehal
         uint16_t StatusLed;
         bool DumpPackets;
         bool CoolEnabled;
+        bool WifiReset;
         String WifiSsid;
         String WifiPassword;
         String HostName;

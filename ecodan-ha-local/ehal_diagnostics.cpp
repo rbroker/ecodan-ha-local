@@ -29,7 +29,7 @@ namespace ehal
 #define MAX_NUM_ELEMENTS 32U
 
     void log_web(const __FlashStringHelper* fmt, ...)
-    {        
+    {
         std::unique_ptr<char[]> buffer{ new char[MAX_MESSAGE_LENGTH] };
 
         va_list args;

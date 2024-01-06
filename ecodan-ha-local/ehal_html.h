@@ -7,7 +7,7 @@ namespace ehal
         <title>Ecodan: Home Assistant Bridge</title>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="stylesheet" href="/milligram.css">        
+        <link rel="stylesheet" href="/milligram.css">
         <script type="text/javascript" {{PAGE_SCRIPT}}></script>
     </head>
     <body class="container">
@@ -69,6 +69,10 @@ namespace ehal
         <label class="column column-25" for="dump_pkt">Dump Serial Packets:</label>
         <input class="column column-75" type="checkbox" id="dump_pkt" name="dump_pkt" {{dump_pkt}} />
     </div>
+    <div class="row">
+        <label class="column column-25" for="wifi_reset">Auto-Reset WiFi Settings:</label>
+        <input class="column column-75" type="checkbox" id="wifi_reset" name="wifi_reset" {{wifi_reset}} />
+    </div>
     <br />
     <h2>Heat Pump Configuration:</h2>
     <div class="row">
@@ -78,19 +82,19 @@ namespace ehal
     <br />
     <h2>WiFi Configuration:</h2>
     <div class="row">
-        <label  class="column column-25" for="wifi_ssid">WiFi SSID:</label>     
-        <div class="column column-75">   
+        <label  class="column column-25" for="wifi_ssid">WiFi SSID:</label>
+        <div class="column column-75">
             <select id="wifi_ssid" name="wifi_ssid" onchange='update_ssi()' style="width:90%;" required>
                 <option id="pre-ssid" value="{{wifi_ssid}}">{{wifi_ssid}}</option>
-            </select>                        
+            </select>
             <div id="ssi" class="signal-icon">
                 <div class="signal-bar"></div>
                 <div class="signal-bar"></div>
                 <div class="signal-bar"></div>
                 <div class="signal-bar"></div>
                 <div class="signal-bar"></div>
-            </div>               
-        </div>     
+            </div>
+        </div>
     </div>
     <div class="row">
         <label class="column column-25" for="wifi_pw">WiFi Password:</label>
@@ -235,7 +239,7 @@ namespace ehal
     <tr>
         <td>Heat Pump Message Rx Count:</td>
         <td>{{hp_rx_count}}</td>
-    </tr>    
+    </tr>
 </table>
 <h2>Logs</h2>
 <pre><code class="column column-33 column-offset-33" style="max-height:250px;overflow:auto;" id="logs">
@@ -270,12 +274,12 @@ namespace ehal
         <td>{{outside_temp}}&#176;C</td>
     </tr>
     <thead>
-        <th colspan="2">Efficiency (Last 24h)</th>        
+        <th colspan="2">Efficiency (Last 24h)</th>
     </thead>
     <tr>
         <td>Space Heating:</td>
         <td>{{sh_consumed}}kWh &rarr; {{sh_delivered}}kWh (COP: {{sh_cop}})</td>
-    </tr>    
+    </tr>
     <tr>
         <td>DHW:</td>
         <td>{{dhw_consumed}}kWh &rarr; {{dhw_delivered}}kWh (COP: {{dhw_cop}})</td>

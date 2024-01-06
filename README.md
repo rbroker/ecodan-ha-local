@@ -144,6 +144,11 @@ Note: If this setting or "WiFi SSID" are unset, the device will continue to boot
 | ------- | -------- |
 | `""`    | Yes      |
 
+### Auto-Reset WiFi Settings
+Some parameters of your Mitsubishi Ecodan HVAC
+| Description | Default  |
+| Check this option to fall back to broadcasting a "captive portal" WiFi access point if the network connection is lost for a long time (~20 mins). Intended to avoid the need for physically accessing the ESP32 if (e.g. a router is replaced, and the SSID / password are different). If a device password is set, a device password will be required to connect to the captive port access point. | False |
+
 ### Hostname
 The network hostname the device will use to identify itself. 
 

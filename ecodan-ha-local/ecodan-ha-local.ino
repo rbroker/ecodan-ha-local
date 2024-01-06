@@ -20,6 +20,9 @@ bool heatpumpInitialized = false;
 uint8_t ledTick = 0;
 const uint8_t ledTickPatternHpDisconnect[] = { HIGH, LOW, HIGH, LOW, HIGH, HIGH, HIGH, HIGH, LOW };
 const uint8_t ledTickPatternMqttDisconnect[] = { HIGH, HIGH, HIGH, LOW, LOW, LOW };
+const uint8_t ledTickPatternWiFiDisconnected[] = { HIGH, LOW };
+std::chrono::steady_clock::time_point wifiDisconnectDetected = std::chrono::steady_clock::time_point::min();
+const auto maxWifiDisconnectLength = std::chrono::minutes{10}; // If the WiFi is disconnected for this length of time, reboot and try to re-initialize.
 
 bool initialize_wifi_access_point()
 {
@@ -38,9 +41,10 @@ bool initialize_wifi_access_point()
         }
         WiFi.begin(config.WifiSsid.c_str(), config.WifiPassword.c_str());
 
-        // Give us ~2 mins to re-establish a WiFi connection before we give up,
+        // Give us 10 mins to re-establish a WiFi connection before we give up,
         // just in case there's a power cut and the router needs time to boot.
-        for (int i = 0; i < 240; ++i)
+        auto connectDuration = (std::chrono::seconds{maxWifiDisconnectLength}.count() * 2);
+        for (int i = 0; i < connectDuration; ++i)
         {
             if (WiFi.isConnected())
                 break;
@@ -51,10 +55,18 @@ bool initialize_wifi_access_point()
 
         if (!WiFi.isConnected())
         {
-            ehal::log_web(F("Couldn't connect to WiFi network on boot, falling back to AP mode."));
-            config.WifiPassword.clear();
-            config.WifiSsid.clear();
-            ehal::save_configuration(config);
+            if (config.WifiReset)
+            {
+                ehal::log_web(F("Couldn't connect to WiFi network on boot, falling back to AP mode."));
+                config.WifiPassword.clear();
+                config.WifiSsid.clear();
+                ehal::save_configuration(config);
+            }
+            else
+            {
+                ehal::log_web(F("Couldn't connect to WiFi network on boot, restarting board."));
+            }
+
             ESP.restart();
         }
     }
@@ -113,7 +125,11 @@ void update_status_led()
 
         auto& config = ehal::config_instance();
 
-        if (!ehal::hp::is_connected())
+        if (!WiFi.isConnected())
+        {
+            digitalWrite(config.StatusLed, ledTickPatternWiFiDisconnected[ledTick++ % sizeof(ledTickPatternWiFiDisconnected)]);
+        }
+        else if (!ehal::hp::is_connected())
         {
             digitalWrite(config.StatusLed, ledTickPatternHpDisconnect[ledTick++ % sizeof(ledTickPatternHpDisconnect)]);
         }
@@ -163,6 +179,32 @@ void log_last_reset_reason()
         default:
             ehal::log_web(F("Reset for unknown reason (%d)"), reason);
             break;
+    }
+}
+
+void reboot_if_wifi_disconnected_too_long()
+{
+    if (!WiFi.isConnected())
+    {
+        if (wifiDisconnectDetected != std::chrono::steady_clock::time_point::min())
+        {
+            // If it's been more than maxWifiDisconnectLength since we had a WiFi connection, restart.
+            if ((std::chrono::steady_clock::now() - wifiDisconnectDetected) > maxWifiDisconnectLength)
+                ESP.restart();
+        }
+        else
+        {
+            // This is the first we've seen of the disconnect, set off our timer.
+            wifiDisconnectDetected = std::chrono::steady_clock::now();
+            ehal::log_web(F("WiFi disconnection detected... allowing up to %llu minutes to recover..."), maxWifiDisconnectLength.count());
+        }
+    }
+    else if (wifiDisconnectDetected != std::chrono::steady_clock::time_point::min())
+    {
+        // If we recovered the connection automatically, reset our disconnect timer.
+        auto disconnectLength = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - wifiDisconnectDetected).count();
+        ehal::log_web(F("WiFi connection re-established after (%llu) seconds."), disconnectLength);
+        wifiDisconnectDetected = std::chrono::steady_clock::time_point::min();
     }
 }
 
@@ -219,6 +261,8 @@ void loop()
 
         update_time(/* force =*/false);
         update_status_led();
+
+        reboot_if_wifi_disconnected_too_long();
     }
     catch (std::exception const& ex)
     {
