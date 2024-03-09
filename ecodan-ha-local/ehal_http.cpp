@@ -384,6 +384,13 @@ namespace ehal::http
             else
                 page.replace(F("{{sh_cop}}"), "0.00");
 
+            page.replace(F("{{cool_consumed}}"), String(status.EnergyConsumedCooling));
+            page.replace(F("{{cool_delivered}}"), String(status.EnergyDeliveredCooling));
+            if (status.EnergyConsumedCooling > 0.0f)
+                page.replace(F("{{cool_cop}}"), String(status.EnergyDeliveredCooling / status.EnergyConsumedCooling));
+            else
+                page.replace(F("{{cool_cop}}"), "0.00");
+
             page.replace(F("{{dhw_consumed}}"), String(status.EnergyConsumedDhw));
             page.replace(F("{{dhw_delivered}}"), String(status.EnergyDeliveredDhw));
             if (status.EnergyConsumedDhw > 0.0f)

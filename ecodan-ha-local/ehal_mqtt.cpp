@@ -888,6 +888,12 @@ off
         if (!publish_ha_float_sensor_auto_discover(F("heating_delivered"), SensorType::POWER))
             anyFailed = true;
 
+        if (!publish_ha_float_sensor_auto_discover(F("cooling_consumed"), SensorType::POWER))
+            anyFailed = true;
+
+        if (!publish_ha_float_sensor_auto_discover(F("cooling_delivered"), SensorType::POWER))
+            anyFailed = true;
+
         if (!publish_ha_float_sensor_auto_discover(F("dhw_consumed"), SensorType::POWER))
             anyFailed = true;
 
@@ -988,6 +994,8 @@ off
         publish_sensor_status<String>(F("mode_heating_cooling"), status.hp_mode_as_string());
         publish_sensor_status<float>(F("heating_consumed"), status.EnergyConsumedHeating);
         publish_sensor_status<float>(F("heating_delivered"), status.EnergyDeliveredHeating);
+        publish_sensor_status<float>(F("cooling_consumed"), status.EnergyConsumedCooling);
+        publish_sensor_status<float>(F("cooling_delivered"), status.EnergyDeliveredCooling);
         publish_sensor_status<float>(F("dhw_consumed"), status.EnergyConsumedDhw);
         publish_sensor_status<float>(F("dhw_delivered"), status.EnergyDeliveredDhw);
         publish_sensor_status<float>(F("z1_room_temp"), status.Zone1RoomTemperature);

@@ -281,6 +281,10 @@ namespace ehal
         <td>{{sh_consumed}}kWh &rarr; {{sh_delivered}}kWh (COP: {{sh_cop}})</td>
     </tr>
     <tr>
+        <td>Cooling:</td>
+        <td>{{cool_consumed}}kWh &rarr; {{cool_delivered}}kWh (COP: {{cool_cop}})</td>
+    </tr>
+    <tr>
         <td>DHW:</td>
         <td>{{dhw_consumed}}kWh &rarr; {{dhw_delivered}}kWh (COP: {{dhw_cop}})</td>
     </tr>

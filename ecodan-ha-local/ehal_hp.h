@@ -76,7 +76,9 @@ namespace ehal::hp
         // Efficiency
         uint8_t CompressorFrequency;
         float EnergyConsumedHeating;
+        float EnergyConsumedCooling;
         float EnergyDeliveredHeating;
+        float EnergyDeliveredCooling;
         float EnergyConsumedDhw;
         float EnergyDeliveredDhw;
 

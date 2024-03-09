@@ -541,10 +541,12 @@ namespace ehal::hp
                 break;
             case GetType::ENERGY_USAGE:
                 status.EnergyConsumedHeating = res.get_float24(4);
+                status.EnergyConsumedCooling = res.get_float24(7);
                 status.EnergyConsumedDhw = res.get_float24(10);
                 break;
             case GetType::ENERGY_DELIVERY:
                 status.EnergyDeliveredHeating = res.get_float24(4);
+                status.EnergyDeliveredCooling = res.get_float24(7);
                 status.EnergyDeliveredDhw = res.get_float24(10);
                 break;
             default:
