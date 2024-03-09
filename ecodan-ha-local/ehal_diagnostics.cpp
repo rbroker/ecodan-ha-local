@@ -106,8 +106,8 @@ namespace ehal
 
     String logs_as_json()
     {
-        DynamicJsonDocument json((MAX_MESSAGE_LENGTH * MAX_NUM_ELEMENTS) + 1024);
-        JsonArray msg = json.createNestedArray(F("messages"));
+        JsonDocument doc;        
+        JsonArray msg = doc["messages"].to<JsonArray>();
 
         {
             std::lock_guard<std::mutex> lock(diagnosticRingbufferLock);
@@ -120,7 +120,7 @@ namespace ehal
         }
 
         String jsonOut;
-        serializeJson(json, jsonOut);
+        serializeJson(doc, jsonOut);
 
         return jsonOut;
     }
