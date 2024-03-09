@@ -119,6 +119,14 @@ Some parameters of your Mitsubishi Ecodan HVAC
 | ----------- | ------------| -------- |
 | `Cool enabled` | Check this option if your ecodan has cool working mode. Enable setting cool mode from Home Assistant | False |
 
+### Device Unique Identifier
+
+| Parameter   | Description | Default  |
+| ----------- | ------------| -------- |
+| `Unique Id` | Identifier to be used in Home Assistant sensors for this device. It should be unique for each Ecodan HVAC in the network. | False (It uses MAC address by default) |
+
+Changing the defaul value can be used to replace the ESP device without having to reconfigure the entities in Home Assistant or the software reading the MQTT messages and writing the values in influxdb.
+
 ### Dump Serial Packets
 Dump packets sent to/received from the heat pump to the diagnostic log window on the Diagnostics page.
 

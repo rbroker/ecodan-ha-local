@@ -407,7 +407,7 @@ off
 
     String unique_entity_name(const String& name)
     {
-        return name + "_" + device_mac();
+        return name + "_" + config_instance().UniqueId;
     }
 
     void add_discovery_device_object(JsonObject obj)

@@ -80,6 +80,12 @@ namespace ehal
         <input class="column column-75" type="checkbox" id="cool_enabled" name="cool_enabled" {{cool_enabled}} />
     </div>
     <br />
+    <h2>Device Unique id</h2>
+    <div class="row">
+        <label class="column column-25" for="unique_id">Device Unique Id:</label>
+        <input class="column column-75" type="text" id="unique_id" max-length="11" name="unique_id" value="{{unique_id}}" />
+    </div>
+    <br />
     <h2>WiFi Configuration:</h2>
     <div class="row">
         <label  class="column column-25" for="wifi_ssid">WiFi SSID:</label>

@@ -1,4 +1,6 @@
 #include "ehal_config.h"
+#include "ehal.h"
+#include <WiFi.h>
 
 #include <Preferences.h>
 
@@ -26,6 +28,7 @@ namespace ehal
         config.StatusLed = prefs.getUShort("status_led", LED_BUILTIN);
         config.DumpPackets = prefs.getBool("dump_pkt", false);
         config.CoolEnabled = prefs.getBool("cool_enabled", false);
+        config.UniqueId = prefs.getString("unique_id", device_mac());
         config.WifiReset = prefs.getBool("wifi_reset", true);
         config.HostName = prefs.getString("hostname", "ecodan_ha_local");
         config.WifiSsid = prefs.getString("wifi_ssid");
@@ -52,6 +55,7 @@ namespace ehal
         prefs.putUShort("status_led", config.StatusLed);
         prefs.putBool("dump_pkt", config.DumpPackets);
         prefs.putBool("cool_enabled", config.CoolEnabled);
+        prefs.putString("unique_id", config.UniqueId);
         prefs.putBool("wifi_reset", config.WifiReset);
         prefs.putString("wifi_ssid", config.WifiSsid);
         prefs.putString("wifi_pw", config.WifiPassword);
@@ -84,7 +88,7 @@ namespace ehal
 
     String get_software_version()
     {
-        return FPSTR("v0.1.7");
+        return FPSTR("v0.1.8");
     }
 
 } // namespace ehal
