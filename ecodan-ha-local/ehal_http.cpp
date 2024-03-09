@@ -276,14 +276,15 @@ namespace ehal::http
         {
             log_web(F("Wifi Scan Result: %u"), result);
 
-            DynamicJsonDocument json(8192);
-            JsonArray wifi = json.createNestedArray(F("wifi"));
+            JsonDocument doc;
+            JsonObject json = doc.to<JsonObject>();
+            JsonArray wifi = json["wifi"].to<JsonArray>();
             String jsonOut;
 
             for (int i = 0; i < result; ++i)
             {
                 log_web(F("SSID: %s"), WiFi.SSID(i).c_str());
-                JsonObject obj = wifi.createNestedObject();
+                JsonObject obj = wifi.add<JsonObject>();
                 obj[F("ssid")] = WiFi.SSID(i);
                 obj[F("rssi")] = WiFi.RSSI(i);
             }

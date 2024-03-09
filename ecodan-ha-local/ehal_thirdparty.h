@@ -5,6 +5,6 @@
  * (anything not included with the ESP32 package)
  */
 
-#include <ArduinoJson.h> // ArduinoJson v6.21.2
+#include <ArduinoJson.h> // ArduinoJson v7.0.3
 #include <mbedtls/md.h>  // Seeed_Arduino_mdedtls v3.0.1
-#include <MQTT.h> // MQTT v2.5.1
+#include <MQTT.h> // MQTT v2.5.2

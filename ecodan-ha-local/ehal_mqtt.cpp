@@ -410,10 +410,10 @@ off
         return name + "_" + device_mac();
     }
 
-    void add_discovery_device_object(DynamicJsonDocument& doc)
+    void add_discovery_device_object(JsonObject obj)
     {
-        JsonObject device = doc.createNestedObject(F("device"));
-        JsonArray identifiers = device.createNestedArray(F("ids"));
+        JsonObject device = obj["device"].to<JsonObject>();        
+        JsonArray identifiers = device["ids"].to<JsonArray>();
         identifiers.add(device_mac());
 
         device[F("name")] = F("Mitsubishi A2W Heat Pump");
@@ -428,7 +428,7 @@ off
         return mqttClient.publish(topic, payload, retain, static_cast<int>(LWMQTT_QOS1));
     }
 
-    bool publish_mqtt(const String& topic, const DynamicJsonDocument& json, bool retain = false)
+    bool publish_mqtt(const String& topic, const JsonDocument& json, bool retain = false)
     {
         String output;
         serializeJson(json, output);
@@ -445,7 +445,8 @@ off
         String stateTopic = config.MqttTopic + "/" + uniqueName + F("/state");
         String tempCmdTopic = config.MqttTopic + "/" + uniqueName + F("/temp_cmd");
 
-        DynamicJsonDocument payloadJson(8192);
+        JsonDocument doc;
+        JsonObject payloadJson = doc.to<JsonObject>();
         payloadJson[F("name")] = uniqueName;
         payloadJson[F("unique_id")] = uniqueName;
         payloadJson[F("icon")] = F("mdi:heat-pump-outline");
@@ -475,11 +476,11 @@ off
             payloadJson[F("temp_step")] = hp::get_temperature_step();
         }
 
-        JsonArray modes = payloadJson.createNestedArray(F("modes"));
+        JsonArray modes = payloadJson["modes"].to<JsonArray>();
         modes.add(F("heat"));
         modes.add(F("off"));
 
-        if (!publish_mqtt(discoveryTopic, payloadJson, /* retain =*/true))
+        if (!publish_mqtt(discoveryTopic, doc, /* retain =*/true))
         {
             log_web(F("Failed to publish homeassistant climate entity auto-discover"));
             return false;
@@ -498,7 +499,8 @@ off
         String stateTopic = config.MqttTopic + "/" + unique_entity_name(F("mode_dhw_forced")) + F("/state");
         String cmdTopic = config.MqttTopic + "/" + uniqueName + F("/set");
 
-        DynamicJsonDocument payloadJson(8192);
+        JsonDocument doc;
+        JsonObject payloadJson = doc.to<JsonObject>();
         payloadJson[F("name")] = uniqueName;
         payloadJson[F("unique_id")] = uniqueName;
         payloadJson[F("icon")] = F("mdi:toggle-switch-variant");
@@ -512,7 +514,7 @@ off
         payloadJson[F("cmd_t")] = cmdTopic;
         payloadJson[F("cmd_tpl")] = F("{{ value }}");
 
-        if (!publish_mqtt(discoveryTopic, payloadJson, /* retain =*/true))
+        if (!publish_mqtt(discoveryTopic, doc, /* retain =*/true))
         {
             log_web(F("Failed to publish homeassistant force DHW entity auto-discover"));
             return false;
@@ -532,7 +534,8 @@ off
         String stateTopic = config.MqttTopic + "/" + unique_entity_name(F("z1_flow_temp_target")) + F("/state");
         String cmdTopic = config.MqttTopic + "/" + uniqueName + F("/set");
 
-        DynamicJsonDocument payloadJson(8192);
+        JsonDocument doc;
+        JsonObject payloadJson = doc.to<JsonObject>();
         payloadJson[F("name")] = uniqueName;
         payloadJson[F("unique_id")] = uniqueName;
 
@@ -549,7 +552,7 @@ off
         payloadJson[F("unit_of_meas")] = F("°C");
         payloadJson[F("icon")] = String("mdi:thermometer-water");
 
-        if (!publish_mqtt(discoveryTopic, payloadJson, /* retain =*/true))
+        if (!publish_mqtt(discoveryTopic, doc, /* retain =*/true))
         {
             log_web(F("Failed to publish homeassistant Z1 flow temperature set entity auto-discover"));
             return false;
@@ -568,7 +571,8 @@ off
         String stateTopic = config.MqttTopic + "/" + unique_entity_name(F("mode_power")) + F("/state");
         String cmdTopic = config.MqttTopic + "/" + uniqueName + F("/set");
 
-        DynamicJsonDocument payloadJson(8192);
+        JsonDocument doc;
+        JsonObject payloadJson = doc.to<JsonObject>();
         payloadJson[F("name")] = uniqueName;
         payloadJson[F("unique_id")] = uniqueName;
         payloadJson[F("icon")] = F("mdi:power");
@@ -582,7 +586,7 @@ off
         payloadJson[F("cmd_t")] = cmdTopic;
         payloadJson[F("cmd_tpl")] = F("{{ value }}");
 
-        if (!publish_mqtt(discoveryTopic, payloadJson, /* retain =*/true))
+        if (!publish_mqtt(discoveryTopic, doc, /* retain =*/true))
         {
             log_web(F("Failed to publish homeassistant turn On/Off HP entity auto-discover"));
             return false;
@@ -599,7 +603,8 @@ off
         const auto& config = config_instance();
         String discoveryTopic = String(F("homeassistant/water_heater/")) + uniqueName + F("/config");
 
-        DynamicJsonDocument payloadJson(8192);
+        JsonDocument doc;
+        JsonObject payloadJson = doc.to<JsonObject>();
         payloadJson[F("name")] = uniqueName;
         payloadJson[F("unique_id")] = uniqueName;
 
@@ -614,14 +619,14 @@ off
         payloadJson[F("mode_cmd_t")] = config.MqttTopic + "/" + unique_entity_name(F("dhw_mode")) + F("/set");
         payloadJson[F("min_temp")] = String(ehal::hp::get_min_dhw_temperature());
         payloadJson[F("max_temp")] = String(ehal::hp::get_max_dhw_temperature());
-        JsonArray modes = payloadJson.createNestedArray(F("modes"));
+        JsonArray modes = payloadJson["modes"].to<JsonArray>();
         modes.add("off");
         modes.add("eco");
         modes.add("performance");
         payloadJson[F("temp_unit")] = "C";
         payloadJson[F("precision")] = 0.5f;
 
-        if (!publish_mqtt(discoveryTopic, payloadJson, /* retain =*/true))
+        if (!publish_mqtt(discoveryTopic, doc, /* retain =*/true))
         {
             log_web(F("Failed to publish homeassistant DHW temperature set entity auto-discover"));
             return false;
@@ -638,7 +643,8 @@ off
         const auto& config = config_instance();
         String discoveryTopic = String(F("homeassistant/select/")) + uniqueName + F("/config");
 
-        DynamicJsonDocument payloadJson(8192);
+        JsonDocument doc;
+        JsonObject payloadJson = doc.to<JsonObject>();
         payloadJson[F("name")] = uniqueName;
         payloadJson[F("unique_id")] = uniqueName;
 
@@ -646,7 +652,7 @@ off
 
         payloadJson[F("stat_t")] = config.MqttTopic + "/" + unique_entity_name(F("mode_heating_cooling")) + F("/state");
         payloadJson[F("cmd_t")] = config.MqttTopic + "/" + unique_entity_name(F("sh_mode")) + F("/set");
-        JsonArray options = payloadJson.createNestedArray(F("options"));
+        JsonArray options = payloadJson["options"].to<JsonArray>();
         options.add("Heat Target Temperature");
         options.add("Heat Flow Temperature");
         options.add("Heat Compensation Curve");
@@ -655,7 +661,7 @@ off
           options.add("Cool Flow Temperature");
         }
 
-        if (!publish_mqtt(discoveryTopic, payloadJson, /* retain =*/true))
+        if (!publish_mqtt(discoveryTopic, doc, /* retain =*/true))
         {
             log_web(F("Failed to publish homeassistant SH mode entity auto-discover"));
             return false;
@@ -672,7 +678,8 @@ off
         String stateTopic = config.MqttTopic + "/" + uniqueName + F("/state");
 
         // https://www.home-assistant.io/integrations/binary_sensor.mqtt/
-        DynamicJsonDocument payloadJson(4096);
+        JsonDocument doc;
+        JsonObject payloadJson = doc.to<JsonObject>();
         payloadJson[F("name")] = uniqueName;
         payloadJson[F("unique_id")] = uniqueName;
 
@@ -683,7 +690,7 @@ off
         payloadJson[F("payload_on")] = F("on");
         payloadJson[F("exp_aft")] = SENSOR_STATE_TIMEOUT;
 
-        if (!publish_mqtt(discoveryTopic, payloadJson))
+        if (!publish_mqtt(discoveryTopic, doc))
         {
             log_web(F("Failed to publish homeassistant %s entity auto-discover"), uniqueName.c_str());
             return false;
@@ -700,7 +707,8 @@ off
         String stateTopic = config.MqttTopic + "/" + uniqueName + F("/state");
 
         // https://www.home-assistant.io/integrations/sensor.mqtt/
-        DynamicJsonDocument payloadJson(4096);
+        JsonDocument doc;
+        JsonObject payloadJson = doc.to<JsonObject>();
         payloadJson[F("name")] = uniqueName;
         payloadJson[F("unique_id")] = uniqueName;
 
@@ -752,7 +760,7 @@ off
             break;
         }
 
-        if (!publish_mqtt(discoveryTopic, payloadJson))
+        if (!publish_mqtt(discoveryTopic, doc))
         {
             log_web(F("Failed to publish homeassistant %s entity auto-discover"), uniqueName.c_str());
             return false;
@@ -769,7 +777,8 @@ off
         String stateTopic = config.MqttTopic + "/" + uniqueName + F("/state");
 
         // https://www.home-assistant.io/integrations/sensor.mqtt/
-        DynamicJsonDocument payloadJson(4096);
+        JsonDocument doc;
+        JsonObject payloadJson = doc.to<JsonObject>();
         payloadJson[F("name")] = uniqueName;
         payloadJson[F("unique_id")] = uniqueName;
 
@@ -784,7 +793,7 @@ off
             payloadJson[F("icon")] = icon;
         }
 
-        if (!publish_mqtt(discoveryTopic, payloadJson))
+        if (!publish_mqtt(discoveryTopic, doc))
         {
             log_web(F("Failed to publish homeassistant %s entity auto-discover"), uniqueName.c_str());
             return false;
@@ -912,7 +921,9 @@ off
 
     void publish_climate_status()
     {
-        DynamicJsonDocument json(1024);
+        JsonDocument doc;
+        JsonObject json = doc.to<JsonObject>();
+
 
         {
             auto& status = hp::get_status();
@@ -926,7 +937,7 @@ off
 
         const auto& config = config_instance();
         String stateTopic = config.MqttTopic + "/" + unique_entity_name(F("climate_control")) + F("/state");
-        if (!publish_mqtt(stateTopic, json))
+        if (!publish_mqtt(stateTopic, doc))
             log_web(F("Failed to publish MQTT state for: %s"), unique_entity_name(F("climate_control")).c_str());
     }
 

@@ -19,7 +19,7 @@ Uses the CN105 connector on the Cased Flow Temp Controller (FTC6 in my setup) to
 - Output power
 - Legionella prevention temperature setting
 - Zone 1 room temperature
-- Zone 1 flow temperature target 
+- Zone 1 flow temperature target
 - Zone 2 room temperature
 - Zone 2 flow temperature target
 - Dhw current temperature
@@ -59,9 +59,9 @@ Uses the CN105 connector on the Cased Flow Temp Controller (FTC6 in my setup) to
 - WROOM-32
 
 ## Library Dependencies
-- ArduinoJson v6.21.2
+- ArduinoJson v7.0.3
 - Seeed_Arduino_mbedtls v3.0.1
-- MQTT v2.5.1
+- MQTT v2.5.2
 
 ## First Time Setup
 - Clone this repository and build with the Arduino IDE
@@ -150,7 +150,7 @@ Some parameters of your Mitsubishi Ecodan HVAC
 | Check this option to fall back to broadcasting a "captive portal" WiFi access point if the network connection is lost for a long time (~20 mins). Intended to avoid the need for physically accessing the ESP32 if (e.g. a router is replaced, and the SSID / password are different). If a device password is set, a device password will be required to connect to the captive port access point. | False |
 
 ### Hostname
-The network hostname the device will use to identify itself. 
+The network hostname the device will use to identify itself.
 
 | Default           | Required |
 | ----------------- | -------- |
@@ -164,7 +164,7 @@ The IP address or hostname of the MQTT server on your local network.
 | `""`    | No       |
 
 ### MQTT Port
-The port on which your MQTT server is listening. 
+The port on which your MQTT server is listening.
 
 | Default | Required |
 | ------- | -------- |
