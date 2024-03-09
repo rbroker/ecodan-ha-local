@@ -510,7 +510,10 @@ namespace ehal::hp
                 break;
             case GetType::SH_TEMPERATURE_STATE:
                 status.Zone1RoomTemperature = res.get_float16(1);
-                status.Zone2RoomTemperature = res.get_float16(7);
+                if (res.get_u16(3) != 0xF0C4) // 0xF0C4 seems to be a sentinel value for "not reported in the current system"
+                    status.Zone2RoomTemperature = res.get_float16(3);
+                else
+                    status.Zone2RoomTemperature = 0.0f;
                 status.OutsideTemperature = res.get_float8(11);
                 break;
             case GetType::DHW_TEMPERATURE_STATE_A:

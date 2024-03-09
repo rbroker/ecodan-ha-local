@@ -59,7 +59,7 @@ namespace ehal::hp
         MODE_FLAGS_B = 0x28,
         ENERGY_USAGE = 0xA1,
         ENERGY_DELIVERY = 0xA2
-    };    
+    };
 
     const uint8_t HEADER_SIZE = 5;
     const uint8_t PAYLOAD_SIZE = 16;
@@ -272,6 +272,11 @@ namespace ehal::hp
         {
             float value = payload()[index];
             return (value - 80.0f);
+        }
+
+        uint16_t get_u16(size_t index)
+        {
+            return uint16_t(payload()[index] << 8) | payload()[index + 1];
         }
 
         void set_float16(float value, size_t index)

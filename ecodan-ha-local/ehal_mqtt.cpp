@@ -905,11 +905,17 @@ off
 
         if (!publish_ha_float_sensor_auto_discover(F("z1_flow_temp_target"), SensorType::TEMPERATURE))
             anyFailed = true;
+
+        if (!publish_ha_float_sensor_auto_discover(F("z1_room_temp_target"), SensorType::TEMPERATURE))
+            anyFailed = true;
     
+        if (!publish_ha_float_sensor_auto_discover(F("z2_room_temp"), SensorType::TEMPERATURE))
+            anyFailed = true;
+
         if (!publish_ha_float_sensor_auto_discover(F("z2_flow_temp_target"), SensorType::TEMPERATURE))
             anyFailed = true;
 
-        if (!publish_ha_float_sensor_auto_discover(F("z2_room_temp"), SensorType::TEMPERATURE))
+        if (!publish_ha_float_sensor_auto_discover(F("z2_room_temp_target"), SensorType::TEMPERATURE))
             anyFailed = true;
 
         if (!publish_ha_float_sensor_auto_discover(F("dhw_temp"), SensorType::TEMPERATURE))
@@ -1000,8 +1006,10 @@ off
         publish_sensor_status<float>(F("dhw_delivered"), status.EnergyDeliveredDhw);
         publish_sensor_status<float>(F("z1_room_temp"), status.Zone1RoomTemperature);
         publish_sensor_status<float>(F("z1_flow_temp_target"), status.Zone1FlowTemperatureSetPoint);
+        publish_sensor_status<float>(F("z1_room_temp_target"), status.Zone1SetTemperature);
         publish_sensor_status<float>(F("z2_room_temp"), status.Zone2RoomTemperature);
         publish_sensor_status<float>(F("z2_flow_temp_target"), status.Zone2FlowTemperatureSetPoint);
+        publish_sensor_status<float>(F("z2_room_temp_target"), status.Zone2SetTemperature);
         publish_sensor_status<float>(F("dhw_temp"), status.DhwTemperature);
         publish_sensor_status<float>(F("dhw_cop"), status.EnergyConsumedDhw > 0.0f ? status.EnergyDeliveredDhw / status.EnergyConsumedDhw : 0.0f);
         publish_sensor_status<float>(F("sh_cop"), status.EnergyConsumedHeating > 0.0f ? status.EnergyDeliveredHeating / status.EnergyConsumedHeating : 0.0f);
