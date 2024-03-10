@@ -1,6 +1,5 @@
 #include "ehal_config.h"
 #include "ehal.h"
-#include <WiFi.h>
 
 #include <Preferences.h>
 
