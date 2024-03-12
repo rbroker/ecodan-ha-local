@@ -174,7 +174,7 @@ namespace ehal::http
         else
             page.replace(F("{{cool_enabled}}"), "");
 
-        if (config.UniqueId)
+        if (config.UniqueId.length() > 0)
             page.replace(F("{{unique_id}}"), config.UniqueId);
         else
             page.replace(F("{{unique_id}}"), device_mac());
