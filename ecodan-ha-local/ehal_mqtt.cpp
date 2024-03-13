@@ -414,7 +414,7 @@ off
     {
         String stringName = name;
         stringName.replace(" ", "_");
-        return  stringName + "_" + device_mac();
+        return  stringName + "_" + config_instance().UniqueId;
     }
 
     void add_discovery_device_object(JsonObject obj)

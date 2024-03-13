@@ -7,6 +7,7 @@
 #include "ehal_js.h"
 #include "ehal_mqtt.h"
 #include "ehal_thirdparty.h"
+#include "ehal.h"
 
 #include <DNSServer.h>
 #include <Update.h>
@@ -173,6 +174,11 @@ namespace ehal::http
         else
             page.replace(F("{{cool_enabled}}"), "");
 
+        if (config.UniqueId.length() > 0)
+            page.replace(F("{{unique_id}}"), config.UniqueId);
+        else
+            page.replace(F("{{unique_id}}"), device_mac());
+
         page.replace(F("{{wifi_ssid}}"), config.WifiSsid);
         page.replace(F("{{wifi_pw}}"), config.WifiPassword);
         page.replace(F("{{hostname}}"), config.HostName);
@@ -217,6 +223,8 @@ namespace ehal::http
             config.WifiReset = true;
         else
             config.WifiReset = false;
+
+        config.UniqueId = server.arg(F("unique_id"));
 
         config.WifiSsid = server.arg(F("wifi_ssid"));
         config.WifiPassword = server.arg(F("wifi_pw"));
