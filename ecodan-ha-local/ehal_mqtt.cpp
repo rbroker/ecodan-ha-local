@@ -34,7 +34,12 @@ namespace ehal::mqtt
         FREQUENCY,
         TEMPERATURE,
         FLOW_RATE,
-        COP
+        COP,
+        CONNECTIVITY,
+        WIFI_SIGNAL,
+        WIFI_SSID,
+        IP_ADDRESS,
+        MAC_ADDRESS
     };
 
     // https://arduinojson.org/v6/how-to/configure-the-serialization-of-floats/#how-to-reduce-the-number-of-decimal-places
@@ -407,7 +412,9 @@ off
 
     String unique_entity_name(const String& name)
     {
-        return name + "_" + config_instance().UniqueId;
+        String stringName = name;
+        stringName.replace(" ", "_");
+        return  stringName + "_" + config_instance().UniqueId;
     }
 
     void add_discovery_device_object(JsonObject obj)
@@ -802,6 +809,64 @@ off
         return true;
     }
 
+    bool publish_ha_diagnostic_sensor_auto_discover(const String& name, SensorType type)
+    {
+        const auto& config = config_instance();
+        String uniqueName = unique_entity_name(name);
+        String discoveryTopic = String(F("homeassistant/sensor/")) + uniqueName + F("/config");
+        String stateTopic = config.MqttTopic + "/" + uniqueName + F("/state");
+
+        // https://www.home-assistant.io/integrations/sensor.mqtt/
+        JsonDocument doc;
+        JsonObject payloadJson = doc.to<JsonObject>();
+        payloadJson[F("name")] = name;
+        payloadJson[F("unique_id")] = uniqueName;
+
+        add_discovery_device_object(payloadJson);
+
+        payloadJson[F("entity_category")] = "diagnostic";
+        payloadJson[F("stat_t")] = stateTopic;
+        payloadJson[F("val_tpl")] = F("{{ value }}");
+        payloadJson[F("exp_aft")] = SENSOR_STATE_TIMEOUT;
+
+        switch (type)
+        {
+        case SensorType::CONNECTIVITY:
+            discoveryTopic = String(F("homeassistant/binary_sensor/")) + uniqueName + F("/config");
+            payloadJson[F("payload_off")] = F("off");
+            payloadJson[F("payload_on")] = F("on");
+            payloadJson[F("dev_cla")] = F("connectivity");
+            break;
+        case SensorType::WIFI_SIGNAL:
+            payloadJson[F("unit_of_meas")] = F("dBm");
+            payloadJson[F("icon")] = F("mdi:wifi");
+            payloadJson[F("dev_cla")] = F("signal_strength");
+            break;
+        case SensorType::WIFI_SSID:
+            payloadJson[F("icon")] = F("mdi:eye");
+            payloadJson[F("enabled_by_default")] = bool(false);
+            break;
+        case SensorType::IP_ADDRESS:
+            payloadJson[F("icon")] = F("mdi:ip");
+            payloadJson[F("enabled_by_default")] = bool(false);
+            break;
+        case SensorType::MAC_ADDRESS:
+            payloadJson[F("icon")] = F("mdi:eye");
+            payloadJson[F("enabled_by_default")] = bool(false);            
+            break;
+        default:
+            break;
+        }
+
+        if (!publish_mqtt(discoveryTopic, doc))
+        {
+            log_web(F("Failed to publish homeassistant %s entity auto-discover"), uniqueName.c_str());
+            return false;
+        }
+
+        return true;
+    }
+
     void publish_homeassistant_auto_discover()
     {
         if (!needsAutoDiscover)
@@ -926,6 +991,22 @@ off
 
         if (!publish_ha_float_sensor_auto_discover(F("sh_cop"), SensorType::COP))
             anyFailed = true;
+        
+        // Diagnostic sensors
+        if (!publish_ha_diagnostic_sensor_auto_discover(F("Heat pump connection state"), SensorType::CONNECTIVITY))
+            anyFailed = true;
+        
+        if (!publish_ha_diagnostic_sensor_auto_discover(F("Wifi signal"), SensorType::WIFI_SIGNAL))
+            anyFailed = true;
+        
+        if (!publish_ha_diagnostic_sensor_auto_discover(F("Wifi SSID"), SensorType::WIFI_SSID))
+            anyFailed = true;
+
+        if (!publish_ha_diagnostic_sensor_auto_discover(F("IP address"), SensorType::IP_ADDRESS))
+            anyFailed = true;
+
+        if (!publish_ha_diagnostic_sensor_auto_discover(F("MAC address"), SensorType::MAC_ADDRESS))
+            anyFailed = true;
 
         if (!anyFailed)
             needsAutoDiscover = false;
@@ -1013,6 +1094,13 @@ off
         publish_sensor_status<float>(F("dhw_temp"), status.DhwTemperature);
         publish_sensor_status<float>(F("dhw_cop"), status.EnergyConsumedDhw > 0.0f ? status.EnergyDeliveredDhw / status.EnergyConsumedDhw : 0.0f);
         publish_sensor_status<float>(F("sh_cop"), status.EnergyConsumedHeating > 0.0f ? status.EnergyDeliveredHeating / status.EnergyConsumedHeating : 0.0f);
+        // Diagnostic
+        publish_binary_sensor_status(F("Heat pump connection state"), hp::is_connected());
+        publish_sensor_status<int>(F("Wifi signal"), int(WiFi.RSSI()));
+        publish_sensor_status<String>(F("Wifi SSID"), WiFi.SSID());
+        publish_sensor_status<String>(F("IP address"), WiFi.localIP().toString());
+        publish_sensor_status<String>(F("MAC address"), WiFi.macAddress());
+
     }
 
     bool connect()

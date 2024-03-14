@@ -41,6 +41,13 @@ Uses the CN105 connector on the Cased Flow Temp Controller (FTC6 in my setup) to
 - COP of space heating
 - COP of DHW
 
+## Diagnostic sensors retreived
+- Heat pump connection state
+- Wifi RSSI
+- Wifi SSID
+- IP address
+- MAC address
+
 <p float="left">
   <img src="img/config_page.png" height="640" />
   <img src="img/hp_state.png" height="640" />
@@ -155,7 +162,8 @@ Note: If this setting or "WiFi SSID" are unset, the device will continue to boot
 ### Auto-Reset WiFi Settings
 Some parameters of your Mitsubishi Ecodan HVAC
 | Description | Default  |
-| Check this option to fall back to broadcasting a "captive portal" WiFi access point if the network connection is lost for a long time (~20 mins). Intended to avoid the need for physically accessing the ESP32 if (e.g. a router is replaced, and the SSID / password are different). If a device password is set, a device password will be required to connect to the captive port access point. | False |
+| ----------- | -------- |
+| Check this option to fall back to broadcasting a "captive portal" WiFi access point if the network connection is lost for a long time (~20 mins). Intended to avoid the need for physically accessing the ESP32 if (e.g. a router is replaced, and the SSID / password are different). If a device password is set, a device password will be required to connect to the captive port access point. | `False` |
 
 ### Hostname
 The network hostname the device will use to identify itself.
