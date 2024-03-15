@@ -100,8 +100,9 @@ namespace ehal::hp
                       case HpMode::COOL_ROOM_TEMP:
                           [[fallthrough]]
                       case HpMode::COOL_FLOW_TEMP:
-                          return F("cool");                                                                   
-                    }                    
+                          return F("cool");
+                    }
+                    [[fallthrough]]
                 default:
                     return F("off");
             }
@@ -113,10 +114,10 @@ namespace ehal::hp
             {
                 case OperationMode::SH_ON:
                     [[fallthrough]]
-                case OperationMode::FROST_PROTECT:                    
+                case OperationMode::FROST_PROTECT:
                     return F("heating");
                 case OperationMode::COOL_ON:
-                    return F("cooling");                        
+                    return F("cooling");
                 case OperationMode::OFF:
                     [[fallthrough]]
                 case OperationMode::DHW_ON:
@@ -147,10 +148,10 @@ namespace ehal::hp
                     return F("Off");
                 case OperationMode::DHW_ON:
                     return F("Heating Water");
-                case OperationMode::SH_ON:                  
+                case OperationMode::SH_ON:
                     return F("Space Heating");
-                case OperationMode::COOL_ON:                  
-                    return F("Space Cooling");                        
+                case OperationMode::COOL_ON:
+                    return F("Space Cooling");
                 case OperationMode::FROST_PROTECT:
                     return F("Frost Protection");
                 case OperationMode::LEGIONELLA_PREVENTION:
@@ -195,7 +196,7 @@ namespace ehal::hp
                 case HpMode::COOL_ROOM_TEMP:
                     return F("Cool Target Temperature");
                 case HpMode::COOL_FLOW_TEMP:
-                    return F("Cool Flow Temperature");                    
+                    return F("Cool Flow Temperature");
                 default:
                     return F("Unknown");
             }
