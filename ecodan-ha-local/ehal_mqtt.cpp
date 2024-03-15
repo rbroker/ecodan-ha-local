@@ -436,7 +436,7 @@ off
         const int RETRY_COUNT = 3;
         for (int i = 0; i < RETRY_COUNT; ++i)
         {
-            if (mqttClient.publish(topic, payload, retain, static_cast<int>(LWMQTT_QOS1)))
+            if (mqttClient.publish(topic, payload, retain, static_cast<int>(LWMQTT_QOS2)))
             {
                 return true;
             }
