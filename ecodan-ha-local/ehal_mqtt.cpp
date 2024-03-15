@@ -17,10 +17,11 @@ namespace ehal::mqtt
 {
 #define SENSOR_STATE_TIMEOUT (300) // If we update HP state once a minute, expiring HA states after 300s seems appropriate.
 
-    void publish_climate_status();
-    void publish_binary_sensor_status(const String& name, bool on);
+    bool publish_climate_status();
+    bool publish_binary_sensor_status(const String& name, bool on);
     template <typename T>
-    void publish_sensor_status(const String& name, T value);
+    bool publish_sensor_status(const String& name, T value);
+    bool connect_mqtt();
 
     std::mutex statusUpdateMtx;
     bool needsAutoDiscover = true;
@@ -272,10 +273,10 @@ off
         }
     }
 
-    void on_turn_on_off_command(const String& payload)    
+    void on_turn_on_off_command(const String& payload)
     {
       bool turnON = payload == "ON";
-      
+
       if (!hp::set_power_mode(turnON))
         {
             log_web(F("Failed to set power mode!"));
@@ -284,11 +285,11 @@ off
         {
             auto& status = hp::get_status();
             std::lock_guard<hp::Status> lock{status};
-            if (turnON) 
+            if (turnON)
             {
                 status.Power = hp::Status::PowerMode::ON;
-            } 
-            else 
+            }
+            else
             {
                 status.Power = hp::Status::PowerMode::STANDBY;
             }
@@ -311,7 +312,7 @@ off
             String shModeCmdTopic = config.MqttTopic + "/" + unique_entity_name(F("sh_mode")) + F("/set");
 
             log_web(F("MQTT topic received: %s: '%s'"), topic.c_str(), payload.c_str());
-            
+
             if (tempCmdTopic == topic)
             {
                 on_z1_temperature_set_command(payload);
@@ -419,7 +420,7 @@ off
 
     void add_discovery_device_object(JsonObject obj)
     {
-        JsonObject device = obj["device"].to<JsonObject>();        
+        JsonObject device = obj["device"].to<JsonObject>();
         JsonArray identifiers = device["ids"].to<JsonArray>();
         identifiers.add(device_mac());
 
@@ -432,7 +433,27 @@ off
 
     bool publish_mqtt(const String& topic, const String& payload, bool retain = false)
     {
-        return mqttClient.publish(topic, payload, retain, static_cast<int>(LWMQTT_QOS1));
+        const int RETRY_COUNT = 3;
+        for (int i = 0; i < RETRY_COUNT; ++i)
+        {
+            if (mqttClient.publish(topic, payload, retain, static_cast<int>(LWMQTT_QOS1)))
+            {
+                return true;
+            }
+            else
+            {
+                log_web(F("MQTT publishing failure: '%s': %d"), topic.c_str(), mqttClient.lastError());
+            }
+
+            if (!mqttClient.connected())
+            {
+                log_web(F("MQTT network disconnection detected trying to publish: '%s' attempting to re-connect: %d/%d"), topic.c_str(), i+1, RETRY_COUNT);
+                connect_mqtt();
+            }
+        }
+
+        needsAutoDiscover = true;
+        return false;
     }
 
     bool publish_mqtt(const String& topic, const JsonDocument& json, bool retain = false)
@@ -852,7 +873,7 @@ off
             break;
         case SensorType::MAC_ADDRESS:
             payloadJson[F("icon")] = F("mdi:eye");
-            payloadJson[F("enabled_by_default")] = bool(false);            
+            payloadJson[F("enabled_by_default")] = bool(false);
             break;
         default:
             break;
@@ -872,147 +893,142 @@ off
         if (!needsAutoDiscover)
             return;
 
-        bool anyFailed = false;
-
         // https://www.home-assistant.io/integrations/mqtt/
         if (!publish_ha_climate_auto_discover())
-            anyFailed = true;
+            return;
 
         if (!publish_ha_set_z1_flow_target_auto_discover())
-            anyFailed = true;
+            return;
 
         if (!publish_ha_force_dhw_auto_discover())
-            anyFailed = true;
+            return;
 
-        if (!publish_ha_turn_on_off_auto_discover())    
-            anyFailed = true;
+        if (!publish_ha_turn_on_off_auto_discover())
+            return;
 
         if (!publish_ha_set_dhw_temp_auto_discover())
-            anyFailed = true;
+            return;
 
         if (!publish_ha_set_sh_mode_auto_discover())
-            anyFailed = true;
+            return;
 
         if (!publish_ha_binary_sensor_auto_discover(F("mode_defrost")))
-            anyFailed = true;
+            return;
 
         if (!publish_ha_float_sensor_auto_discover(F("compressor_frequency"), SensorType::FREQUENCY))
-            anyFailed = true;
+            return;
 
         if (!publish_ha_float_sensor_auto_discover(F("flow_rate"), SensorType::FLOW_RATE))
-            anyFailed = true;
+            return;
 
         if (!publish_ha_binary_sensor_auto_discover(F("mode_dhw_forced")))
-            anyFailed = true;
+            return;
 
         if (!publish_ha_float_sensor_auto_discover(F("output_pwr"), SensorType::LIVE_POWER))
-            anyFailed = true;
+            return;
 
         if (!publish_ha_float_sensor_auto_discover(F("legionella_prevention_temp"), SensorType::TEMPERATURE))
-            anyFailed = true;
+            return;
 
         if (!publish_ha_float_sensor_auto_discover(F("dhw_temp_drop"), SensorType::TEMPERATURE))
-            anyFailed = true;
+            return;
 
         if (!publish_ha_float_sensor_auto_discover(F("outside_temp"), SensorType::TEMPERATURE))
-            anyFailed = true;
+            return;
 
         if (!publish_ha_float_sensor_auto_discover(F("hp_feed_temp"), SensorType::TEMPERATURE))
-            anyFailed = true;
+            return;
 
         if (!publish_ha_float_sensor_auto_discover(F("hp_return_temp"), SensorType::TEMPERATURE))
-            anyFailed = true;
+            return;
 
         if (!publish_ha_float_sensor_auto_discover(F("boiler_flow_temp"), SensorType::TEMPERATURE))
-            anyFailed = true;
+            return;
 
         if (!publish_ha_float_sensor_auto_discover(F("boiler_return_temp"), SensorType::TEMPERATURE))
-            anyFailed = true;
+            return;
 
         if (!publish_ha_float_sensor_auto_discover(F("dhw_flow_temp_target"), SensorType::TEMPERATURE))
-            anyFailed = true;
+            return;
 
         if (!publish_ha_float_sensor_auto_discover(F("sh_flow_temp_target"), SensorType::TEMPERATURE))
-            anyFailed = true;
+            return;
 
         if (!publish_ha_string_sensor_auto_discover(F("mode_power")))
-            anyFailed = true;
+            return;
 
         if (!publish_ha_string_sensor_auto_discover(F("mode_operation")))
-            anyFailed = true;
+            return;
 
         if (!publish_ha_string_sensor_auto_discover(F("mode_dhw")))
-            anyFailed = true;
+            return;
 
         if (!publish_ha_string_sensor_auto_discover(F("mode_heating_cooling")))
-            anyFailed = true;
+            return;
 
         if (!publish_ha_float_sensor_auto_discover(F("heating_consumed"), SensorType::POWER))
-            anyFailed = true;
+            return;
 
         if (!publish_ha_float_sensor_auto_discover(F("heating_delivered"), SensorType::POWER))
-            anyFailed = true;
+            return;
 
         if (!publish_ha_float_sensor_auto_discover(F("cooling_consumed"), SensorType::POWER))
-            anyFailed = true;
+            return;
 
         if (!publish_ha_float_sensor_auto_discover(F("cooling_delivered"), SensorType::POWER))
-            anyFailed = true;
+            return;
 
         if (!publish_ha_float_sensor_auto_discover(F("dhw_consumed"), SensorType::POWER))
-            anyFailed = true;
+            return;
 
         if (!publish_ha_float_sensor_auto_discover(F("dhw_delivered"), SensorType::POWER))
-            anyFailed = true;
+            return;
 
         if (!publish_ha_float_sensor_auto_discover(F("z1_room_temp"), SensorType::TEMPERATURE))
-            anyFailed = true;
+            return;
 
         if (!publish_ha_float_sensor_auto_discover(F("z1_flow_temp_target"), SensorType::TEMPERATURE))
-            anyFailed = true;
+            return;
 
         if (!publish_ha_float_sensor_auto_discover(F("z1_room_temp_target"), SensorType::TEMPERATURE))
-            anyFailed = true;
-    
+            return;
+
         if (!publish_ha_float_sensor_auto_discover(F("z2_room_temp"), SensorType::TEMPERATURE))
-            anyFailed = true;
+            return;
 
         if (!publish_ha_float_sensor_auto_discover(F("z2_flow_temp_target"), SensorType::TEMPERATURE))
-            anyFailed = true;
+            return;
 
         if (!publish_ha_float_sensor_auto_discover(F("z2_room_temp_target"), SensorType::TEMPERATURE))
-            anyFailed = true;
+            return;
 
         if (!publish_ha_float_sensor_auto_discover(F("dhw_temp"), SensorType::TEMPERATURE))
-            anyFailed = true;
+            return;
 
         if (!publish_ha_float_sensor_auto_discover(F("dhw_cop"), SensorType::COP))
-            anyFailed = true;
+            return;
 
         if (!publish_ha_float_sensor_auto_discover(F("sh_cop"), SensorType::COP))
-            anyFailed = true;
-        
+            return;
+
         // Diagnostic sensors
         if (!publish_ha_diagnostic_sensor_auto_discover(F("Heat pump connection state"), SensorType::CONNECTIVITY))
-            anyFailed = true;
-        
+            return;
+
         if (!publish_ha_diagnostic_sensor_auto_discover(F("Wifi signal"), SensorType::WIFI_SIGNAL))
-            anyFailed = true;
-        
+            return;
+
         if (!publish_ha_diagnostic_sensor_auto_discover(F("Wifi SSID"), SensorType::WIFI_SSID))
-            anyFailed = true;
+            return;
 
         if (!publish_ha_diagnostic_sensor_auto_discover(F("IP address"), SensorType::IP_ADDRESS))
-            anyFailed = true;
+            return;
 
         if (!publish_ha_diagnostic_sensor_auto_discover(F("MAC address"), SensorType::MAC_ADDRESS))
-            anyFailed = true;
-
-        if (!anyFailed)
-            needsAutoDiscover = false;
+            return;
     }
 
-    void publish_climate_status()
+    bool publish_climate_status()
     {
         JsonDocument doc;
         JsonObject json = doc.to<JsonObject>();
@@ -1031,25 +1047,40 @@ off
         const auto& config = config_instance();
         String stateTopic = config.MqttTopic + "/" + unique_entity_name(F("climate_control")) + F("/state");
         if (!publish_mqtt(stateTopic, doc))
+        {
             log_web(F("Failed to publish MQTT state for: %s"), unique_entity_name(F("climate_control")).c_str());
+            return false;
+        }
+
+        return true;
     }
 
-    void publish_binary_sensor_status(const String& name, bool on)
+    bool publish_binary_sensor_status(const String& name, bool on)
     {
         String state = on ? F("on") : F("off");
         const auto& config = config_instance();
         String stateTopic = config.MqttTopic + "/" + unique_entity_name(name) + F("/state");
         if (!publish_mqtt(stateTopic, state))
+        {
             log_web(F("Failed to publish MQTT state for: %s"), unique_entity_name(name).c_str());
+            return false;
+        }
+
+        return true;
     }
 
     template <typename T>
-    void publish_sensor_status(const String& name, T value)
+    bool publish_sensor_status(const String& name, T value)
     {
         const auto& config = config_instance();
         String stateTopic = config.MqttTopic + "/" + unique_entity_name(name) + F("/state");
         if (!publish_mqtt(stateTopic, String(value)))
+        {
             log_web(F("Failed to publish MQTT state for: %s"), unique_entity_name(name).c_str());
+            return false;
+        }
+
+        return true;
     }
 
     void publish_entity_state_updates()
@@ -1057,53 +1088,128 @@ off
         if (!mqttClient.connected())
             return;
 
-        publish_climate_status();
+        if (!publish_climate_status())
+            return;
 
         auto& status = hp::get_status();
         std::lock_guard<hp::Status> lock{status};
-        publish_binary_sensor_status(F("mode_defrost"), status.DefrostActive);
-        publish_sensor_status<float>(F("compressor_frequency"), status.CompressorFrequency);
-        publish_sensor_status<float>(F("flow_rate"), status.FlowRate);
-        publish_binary_sensor_status(F("mode_dhw_forced"), status.DhwForcedActive);
-        publish_sensor_status<float>(F("output_pwr"), status.OutputPower);
-        publish_sensor_status<float>(F("legionella_prevention_temp"), status.LegionellaPreventionSetPoint);
-        publish_sensor_status<float>(F("dhw_temp_drop"), status.DhwTemperatureDrop);
-        publish_sensor_status<float>(F("outside_temp"), status.OutsideTemperature);
-        publish_sensor_status<float>(F("hp_feed_temp"), status.DhwFeedTemperature);
-        publish_sensor_status<float>(F("hp_return_temp"), status.DhwReturnTemperature);
-        publish_sensor_status<float>(F("boiler_flow_temp"), status.BoilerFlowTemperature);
-        publish_sensor_status<float>(F("boiler_return_temp"), status.BoilerReturnTemperature);
-        publish_sensor_status<float>(F("dhw_flow_temp_target"), status.DhwFlowTemperatureSetPoint);
-        publish_sensor_status<float>(F("sh_flow_temp_target"), status.RadiatorFlowTemperatureSetPoint);
-        publish_sensor_status<String>(F("mode_power"), status.power_as_string());
-        publish_sensor_status<String>(F("mode_operation"), status.operation_as_string());
-        publish_sensor_status<String>(F("mode_dhw"), status.dhw_mode_as_string());
-        publish_sensor_status<String>(F("mode_heating_cooling"), status.hp_mode_as_string());
-        publish_sensor_status<float>(F("heating_consumed"), status.EnergyConsumedHeating);
-        publish_sensor_status<float>(F("heating_delivered"), status.EnergyDeliveredHeating);
-        publish_sensor_status<float>(F("cooling_consumed"), status.EnergyConsumedCooling);
-        publish_sensor_status<float>(F("cooling_delivered"), status.EnergyDeliveredCooling);
-        publish_sensor_status<float>(F("dhw_consumed"), status.EnergyConsumedDhw);
-        publish_sensor_status<float>(F("dhw_delivered"), status.EnergyDeliveredDhw);
-        publish_sensor_status<float>(F("z1_room_temp"), status.Zone1RoomTemperature);
-        publish_sensor_status<float>(F("z1_flow_temp_target"), status.Zone1FlowTemperatureSetPoint);
-        publish_sensor_status<float>(F("z1_room_temp_target"), status.Zone1SetTemperature);
-        publish_sensor_status<float>(F("z2_room_temp"), status.Zone2RoomTemperature);
-        publish_sensor_status<float>(F("z2_flow_temp_target"), status.Zone2FlowTemperatureSetPoint);
-        publish_sensor_status<float>(F("z2_room_temp_target"), status.Zone2SetTemperature);
-        publish_sensor_status<float>(F("dhw_temp"), status.DhwTemperature);
-        publish_sensor_status<float>(F("dhw_cop"), status.EnergyConsumedDhw > 0.0f ? status.EnergyDeliveredDhw / status.EnergyConsumedDhw : 0.0f);
-        publish_sensor_status<float>(F("sh_cop"), status.EnergyConsumedHeating > 0.0f ? status.EnergyDeliveredHeating / status.EnergyConsumedHeating : 0.0f);
-        // Diagnostic
-        publish_binary_sensor_status(F("Heat pump connection state"), hp::is_connected());
-        publish_sensor_status<int>(F("Wifi signal"), int(WiFi.RSSI()));
-        publish_sensor_status<String>(F("Wifi SSID"), WiFi.SSID());
-        publish_sensor_status<String>(F("IP address"), WiFi.localIP().toString());
-        publish_sensor_status<String>(F("MAC address"), WiFi.macAddress());
+        if (!publish_binary_sensor_status(F("mode_defrost"), status.DefrostActive))
+            return;
 
+        if (!publish_sensor_status<float>(F("compressor_frequency"), status.CompressorFrequency))
+            return;
+
+        if (!publish_sensor_status<float>(F("flow_rate"), status.FlowRate))
+            return;
+
+        if (!publish_binary_sensor_status(F("mode_dhw_forced"), status.DhwForcedActive))
+            return;
+
+        if (!publish_sensor_status<float>(F("output_pwr"), status.OutputPower))
+            return;
+
+        if (!publish_sensor_status<float>(F("legionella_prevention_temp"), status.LegionellaPreventionSetPoint))
+            return;
+
+        if (!publish_sensor_status<float>(F("dhw_temp_drop"), status.DhwTemperatureDrop))
+            return;
+
+        if (!publish_sensor_status<float>(F("outside_temp"), status.OutsideTemperature))
+            return;
+
+        if (!publish_sensor_status<float>(F("hp_feed_temp"), status.DhwFeedTemperature))
+            return;
+
+        if (!publish_sensor_status<float>(F("hp_return_temp"), status.DhwReturnTemperature))
+            return;
+
+        if (!publish_sensor_status<float>(F("boiler_flow_temp"), status.BoilerFlowTemperature))
+            return;
+
+        if (!publish_sensor_status<float>(F("boiler_return_temp"), status.BoilerReturnTemperature))
+            return;
+
+        if (!publish_sensor_status<float>(F("dhw_flow_temp_target"), status.DhwFlowTemperatureSetPoint))
+            return;
+
+        if (!publish_sensor_status<float>(F("sh_flow_temp_target"), status.RadiatorFlowTemperatureSetPoint))
+            return;
+
+        if (!publish_sensor_status<String>(F("mode_power"), status.power_as_string()))
+            return;
+
+        if (!publish_sensor_status<String>(F("mode_operation"), status.operation_as_string()))
+            return;
+
+        if (!publish_sensor_status<String>(F("mode_dhw"), status.dhw_mode_as_string()))
+            return;
+
+        if (!publish_sensor_status<String>(F("mode_heating_cooling"), status.hp_mode_as_string()))
+            return;
+
+        if (!publish_sensor_status<float>(F("heating_consumed"), status.EnergyConsumedHeating))
+            return;
+
+        if (!publish_sensor_status<float>(F("heating_delivered"), status.EnergyDeliveredHeating))
+            return;
+
+        if (!publish_sensor_status<float>(F("cooling_consumed"), status.EnergyConsumedCooling))
+            return;
+
+        if (!publish_sensor_status<float>(F("cooling_delivered"), status.EnergyDeliveredCooling))
+            return;
+
+        if (!publish_sensor_status<float>(F("dhw_consumed"), status.EnergyConsumedDhw))
+            return;
+
+        if (!publish_sensor_status<float>(F("dhw_delivered"), status.EnergyDeliveredDhw))
+            return;
+
+        if (!publish_sensor_status<float>(F("z1_room_temp"), status.Zone1RoomTemperature))
+            return;
+
+        if (!publish_sensor_status<float>(F("z1_flow_temp_target"), status.Zone1FlowTemperatureSetPoint))
+            return;
+
+        if (!publish_sensor_status<float>(F("z1_room_temp_target"), status.Zone1SetTemperature))
+            return;
+
+        if (!publish_sensor_status<float>(F("z2_room_temp"), status.Zone2RoomTemperature))
+            return;
+
+        if (!publish_sensor_status<float>(F("z2_flow_temp_target"), status.Zone2FlowTemperatureSetPoint))
+            return;
+
+        if (!publish_sensor_status<float>(F("z2_room_temp_target"), status.Zone2SetTemperature))
+            return;
+
+        if (!publish_sensor_status<float>(F("dhw_temp"), status.DhwTemperature))
+            return;
+
+        if (!publish_sensor_status<float>(F("dhw_cop"), status.EnergyConsumedDhw > 0.0f ? status.EnergyDeliveredDhw / status.EnergyConsumedDhw : 0.0f))
+            return;
+
+        if (!publish_sensor_status<float>(F("sh_cop"), status.EnergyConsumedHeating > 0.0f ? status.EnergyDeliveredHeating / status.EnergyConsumedHeating : 0.0f))
+            return;
+
+        // Diagnostic
+        if (!publish_binary_sensor_status(F("Heat pump connection state"), hp::is_connected()))
+            return;
+
+        if (!publish_sensor_status<int>(F("Wifi signal"), int(WiFi.RSSI())))
+            return;
+
+        if (!publish_sensor_status<String>(F("Wifi SSID"), WiFi.SSID()))
+            return;
+
+        if (!publish_sensor_status<String>(F("IP address"), WiFi.localIP().toString()))
+            return;
+
+        if (!publish_sensor_status<String>(F("MAC address"), WiFi.macAddress()))
+            return;
     }
 
-    bool connect()
+    bool connect_mqtt()
     {
         if (mqttClient.connected())
             return true;
@@ -1195,7 +1301,7 @@ off
         mqttClient.begin(config.MqttServer.c_str(), config.MqttPort, espClient);
         mqttClient.onMessage(mqtt_callback);
 
-        if (connect())
+        if (connect_mqtt())
         {
             publish_homeassistant_auto_discover();
         }
@@ -1217,7 +1323,7 @@ off
                 }
 
                 // Re-establish MQTT connection if we need to.
-                connect();
+                connect_mqtt();
 
                 // Publish homeassistant auto-discovery messages if we need to.
                 publish_homeassistant_auto_discover();
