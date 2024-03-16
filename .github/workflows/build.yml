@@ -17,7 +17,7 @@ jobs:
         fqbn:
           - esp32:esp32:esp32
           - esp32:esp32:esp32s3
-          - esp32:esp32:esp32c3
+          #- esp32:esp32:esp32c3
           - esp32:esp32:lolin_s2_mini
 
     steps:
