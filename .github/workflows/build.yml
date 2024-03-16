@@ -1,0 +1,35 @@
+name: Compile Sketch
+on:
+  - push
+  - pull_request
+  - workflow_dispatch
+
+jobs:       
+  build:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        fqbn:
+          - esp32:esp32:esp32
+          - esp32:esp32:esp32s3
+          - esp32:esp32:esp32c3
+          - esp32:esp32:lolin_s2_mini
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: arduino/compile-sketches@v1
+        with:
+          fqbn: ${{ matrix.fqbn }}
+          platforms: |
+            - name: esp32:esp32
+              source-url: https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+          sketch-paths: |
+            - ecodan-ha-local
+          libraries: |
+            - name: ArduinoJson
+              version: 7.0.3
+            - name: Seeed_Arduino_mbedtls
+              version: 3.0.1
+            - name: MQTT
+              version: 2.5.2
