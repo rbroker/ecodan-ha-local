@@ -18,10 +18,8 @@ namespace ehal::hp
     HardwareSerial port = Serial1;
     uint64_t rxMsgCount = 0;
     uint64_t txMsgCount = 0;
-
-    TaskHandle_t serialRxTaskHandle = nullptr;
-    std::thread serialRxThread;
-    std::thread serialTxThread;
+    
+    std::thread serialCommsThread;
     std::deque<Message> cmdQueue;
     std::mutex cmdQueueMutex;
     std::condition_variable cmdQueueCv;
@@ -69,21 +67,21 @@ namespace ehal::hp
 
     bool serial_rx(Message& msg)
     {
+        auto startTime = std::chrono::steady_clock::now();
+
         if (!port)
         {
             log_web_ratelimit(F("Serial connection unavailable for rx"));
             return false;
         }
 
-        if (port.available() < HEADER_SIZE)
-        {
-            const TickType_t maxBlockingTime = pdMS_TO_TICKS(1000);
-            ulTaskNotifyTakeIndexed(0, pdTRUE, maxBlockingTime);
-
-            // We were woken by an interrupt, but there's not enough data available
-            // yet on the serial port for us to start processing it as a packet.
-            if (port.available() < HEADER_SIZE)
+        while (port.available() < HEADER_SIZE)
+        {                        
+            if ((std::chrono::steady_clock::now() - startTime) > std::chrono::seconds(2))
+            {
+                log_web(F("Giving up serial rx only got %d/%d"), port.available(), HEADER_SIZE);
                 return false;
+            }            
         }
 
         // Scan for the start of an Ecodan packet.
@@ -110,21 +108,7 @@ namespace ehal::hp
             return false;
         }
 
-        // It shouldn't take long to receive the rest of the payload after we get the header.
         size_t remainingBytes = msg.payload_size() + CHECKSUM_SIZE;
-        auto startTime = std::chrono::steady_clock::now();
-        while (port.available() < remainingBytes)
-        {
-            delay(1);
-
-            if (std::chrono::steady_clock::now() - startTime > std::chrono::seconds(30))
-            {
-                log_web(F("Serial port message could not be received within 30s (got %u / %u bytes)"), port.available(), remainingBytes);
-                resync_rx();
-                return false;
-            }
-        }
-
         if (port.readBytes(msg.payload(), remainingBytes) < remainingBytes)
         {
             log_web(F("Serial port payload read failure!"));
@@ -514,34 +498,53 @@ namespace ehal::hp
         log_web(F("Unexpected extended connection response!"));
     }
 
-    void IRAM_ATTR serial_rx_isr()
-    {
-        BaseType_t higherPriorityTaskWoken = pdFALSE;
-        vTaskNotifyGiveIndexedFromISR(serialRxTaskHandle, 0, &higherPriorityTaskWoken);
-#if CONFIG_IDF_TARGET_ESP32C3
-        portEND_SWITCHING_ISR(higherPriorityTaskWoken);
-#else
-        portYIELD_FROM_ISR(higherPriorityTaskWoken);
-#endif
-    }
-
-    void serial_rx_thread()
+    void serial_comms_thread()
     {
         ehal::add_thread_to_watchdog();
 
-        // Wake the serial RX thread when the serial RX GPIO pin changes (this may occur during or after packet receipt)
-        serialRxTaskHandle = xTaskGetCurrentTaskHandle();
-
-        {
-            auto& config = config_instance();
-            attachInterrupt(digitalPinToInterrupt(config.SerialRxPort), serial_rx_isr, FALLING);
-        }
-
+        Message cmd;
         while (true)
         {
             try
             {
                 ehal::ping_watchdog();
+
+                {
+                    std::unique_lock<std::mutex> lock{cmdQueueMutex};
+
+                    bool hasMessage = cmdQueueCv.wait_for(lock, std::chrono::seconds(5), [&]()
+                    {
+                        return !cmdQueue.empty();
+                    });
+
+                    // We timed out, so ping the watchdog and go back to waiting.
+                    if (!hasMessage)
+                        continue;
+
+                    cmd = std::move(cmdQueue.front());
+                    cmdQueue.pop_front();
+                }
+
+                // 2400 baud is actually pretty slow
+                for (int i = 0; (port.availableForWrite() < cmd.size()) && i < 250; ++i)
+                {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                }
+
+                if (port.availableForWrite() < cmd.size())
+                {
+                    log_web(F("Abandoning message write, serial port did not become writable in time: %u < %u"), port.availableForWrite(), cmd.size());
+                    continue;
+                }
+
+                bool success = serial_tx(cmd);
+
+                if (!success)
+                {
+                    std::lock_guard<std::mutex> lock{cmdQueueMutex};
+                    connected = false;
+                    continue;
+                }
 
                 Message res;
                 if (!serial_rx(res))
@@ -570,63 +573,7 @@ namespace ehal::hp
             }
             catch (std::exception const& ex)
             {
-                ehal::log_web(F("Exception occurred on serial rx thread: %s"), ex.what());
-                std::this_thread::sleep_for(std::chrono::seconds(1));
-            }
-        }
-    }
-
-    void serial_tx_thread()
-    {
-        ehal::add_thread_to_watchdog();
-
-        Message msg;
-
-        while (true)
-        {
-            try
-            {
-                ehal::ping_watchdog();
-
-                {
-                    std::unique_lock<std::mutex> lock{cmdQueueMutex};
-
-                    bool hasMessage = cmdQueueCv.wait_for(lock, std::chrono::seconds(5), [&]()
-                    {
-                        return !cmdQueue.empty();
-                    });
-
-                    // We timed out, so ping the watchdog and go back to waiting.
-                    if (!hasMessage)
-                        continue;
-
-                    msg = std::move(cmdQueue.front());
-                    cmdQueue.pop_front();
-                }
-
-                // 2400 baud is actually pretty slow
-                for (int i = 0; (port.availableForWrite() < msg.size()) && i < 250; ++i)
-                {
-                    std::this_thread::sleep_for(std::chrono::milliseconds(1));
-                }
-
-                if (port.availableForWrite() < msg.size())
-                {
-                    log_web(F("Abandoning message write, serial port did not become writable in time: %u < %u"), port.availableForWrite(), msg.size());
-                    continue;
-                }
-
-                bool success = serial_tx(msg);
-
-                if (!success)
-                {
-                    std::lock_guard<std::mutex> lock{cmdQueueMutex};
-                    connected = false;
-                }
-            }
-            catch (std::exception const& ex)
-            {
-                ehal::log_web(F("Exception occurred on serial tx thread: %s"), ex.what());
+                ehal::log_web(F("Exception occurred on serial cooms thread: %s"), ex.what());
             }
         }
     }
@@ -644,8 +591,7 @@ namespace ehal::hp
 
         port.begin(2400, SERIAL_8E1, config.SerialRxPort, config.SerialTxPort);
 
-        serialRxThread = std::thread{serial_rx_thread};
-        serialTxThread = std::thread{serial_tx_thread};
+        serialCommsThread = std::thread{serial_comms_thread};
 
         begin_connect();
 
