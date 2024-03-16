@@ -1,3 +1,5 @@
+![Build Status](https://github.com/rbroker/ecodan-ha-local/actions/workflows/build.yml/badge.svg)
+
 # ecodan-ha-local
 ESP32 compatible program for local monitoring of Mitsubishi Ecodan Air to Water heat pumps with automatic discovery in HomeAssistant.
 
