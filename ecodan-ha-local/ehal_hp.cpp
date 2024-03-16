@@ -580,7 +580,11 @@ namespace ehal::hp
     {
         BaseType_t higherPriorityTaskWoken = pdFALSE;
         vTaskNotifyGiveIndexedFromISR(serialRxTaskHandle, 0, &higherPriorityTaskWoken);
+#if CONFIG_IDF_TARGET_ESP32C3
+        portEND_SWITCHING_ISR(higherPriorityTaskWoken);
+#else
         portYIELD_FROM_ISR(higherPriorityTaskWoken);
+#endif
     }
 
     void serial_rx_thread()
