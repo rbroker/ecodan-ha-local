@@ -127,22 +127,17 @@ off
 
         float setTemperature = payload.toFloat();
 
-        if (!hp::set_z1_target_temperature(setTemperature))
-        {
-            log_web(F("Failed to set z1 target temperature!"));
-        }
-        else
-        {
-            {
-                auto& status = hp::get_status();
-                std::lock_guard<hp::Status> lock{status};
-                status.Zone1SetTemperature = setTemperature;
-            }
+        hp::set_z1_target_temperature(setTemperature);
 
-            // Ensure lock is released, because publish_climate_status will attempt
-            // to acquire it internally
-            publish_climate_status();
+        {
+            auto& status = hp::get_status();
+            std::lock_guard<hp::Status> lock{status};
+            status.Zone1SetTemperature = setTemperature;
         }
+
+        // Ensure lock is released, because publish_climate_status will attempt
+        // to acquire it internally
+        publish_climate_status();
     }
 
     void on_z1_flow_target_temperature_set_command(const String& payload)
@@ -154,18 +149,13 @@ off
 
         float setTemperature = payload.toFloat();
 
-        if (!hp::set_z1_flow_target_temperature(setTemperature))
-        {
-            log_web(F("Failed to set Z1 flow target temperature!"));
-        }
-        else
-        {
-            auto& status = hp::get_status();
-            std::lock_guard<hp::Status> lock{status};
-            status.Zone1FlowTemperatureSetPoint = setTemperature;
+        hp::set_z1_flow_target_temperature(setTemperature);
 
-            publish_sensor_status<float>(F("z1_flow_temp_target"), setTemperature);
-        }
+        auto& status = hp::get_status();
+        std::lock_guard<hp::Status> lock{status};
+        status.Zone1FlowTemperatureSetPoint = setTemperature;
+
+        publish_sensor_status<float>(F("z1_flow_temp_target"), setTemperature);
     }
 
     void on_dhw_temperature_set_command(const String& payload)
@@ -177,18 +167,13 @@ off
 
         float setTemperature = payload.toFloat();
 
-        if (!hp::set_dhw_target_temperature(setTemperature))
-        {
-            log_web(F("Failed to set DHW target temperature!"));
-        }
-        else
-        {
-            auto& status = hp::get_status();
-            std::lock_guard<hp::Status> lock{status};
-            status.Zone1SetTemperature = setTemperature;
+        hp::set_dhw_target_temperature(setTemperature);
 
-            publish_sensor_status<float>(F("dhw_flow_temp_target"), setTemperature);
-        }
+        auto& status = hp::get_status();
+        std::lock_guard<hp::Status> lock{status};
+        status.Zone1SetTemperature = setTemperature;
+
+        publish_sensor_status<float>(F("dhw_flow_temp_target"), setTemperature);
     }
 
     void on_mode_set_command(const String& payload)
@@ -221,80 +206,60 @@ off
             return;
         }
 
-        if (!hp::set_hp_mode(mode))
-        {
-            log_web(F("Failed to set hp heating coling operation mode!"));
-        }
-        else
-        {
-            auto& status = hp::get_status();
-            std::lock_guard<hp::Status> lock{status};
-            status.set_heating_cooling_mode(mode);
+        hp::set_hp_mode(mode);
 
-            publish_sensor_status<String>(F("mode_heating_cooling"), status.hp_mode_as_string());
-        }
+        auto& status = hp::get_status();
+        std::lock_guard<hp::Status> lock{status};
+        status.set_heating_cooling_mode(mode);
+
+        publish_sensor_status<String>(F("mode_heating_cooling"), status.hp_mode_as_string());
     }
 
     void on_dhw_mode_set_command(const String& payload)
     {
-        if (!hp::set_dhw_mode(payload))
-        {
-            log_web(F("Failed to set DHW mode!"));
-        }
-        else
-        {
-            auto& status = hp::get_status();
-            std::lock_guard<hp::Status> lock{status};
-            if (payload == "eco")
-                status.HotWaterMode = hp::Status::DhwMode::ECO;
-            else if (payload == "performance")
-                status.HotWaterMode = hp::Status::DhwMode::NORMAL;
-            else if (payload == "off")
-                status.Operation = hp::Status::OperationMode::OFF;
+        hp::set_dhw_mode(payload);
 
-            publish_sensor_status<String>(F("mode_dhw"), status.dhw_mode_as_string());
-        }
+        auto& status = hp::get_status();
+        std::lock_guard<hp::Status> lock{status};
+        if (payload == "eco")
+            status.HotWaterMode = hp::Status::DhwMode::ECO;
+        else if (payload == "performance")
+            status.HotWaterMode = hp::Status::DhwMode::NORMAL;
+        else if (payload == "off")
+            status.Operation = hp::Status::OperationMode::OFF;
+
+        publish_sensor_status<String>(F("mode_dhw"), status.dhw_mode_as_string());
     }
 
     void on_force_dhw_command(const String& payload)
     {
         bool forced = payload == "ON";
 
-        if (!hp::set_dhw_force(forced))
-        {
-            log_web(F("Failed to force DHW: %s"), payload.c_str());
-        }
-        else
-        {
-            auto& status = hp::get_status();
-            std::lock_guard<hp::Status> lock{status};
-            status.DhwForcedActive = forced;
-            publish_binary_sensor_status(F("mode_dhw_forced"), forced);
-        }
+        hp::set_dhw_force(forced);
+
+        auto& status = hp::get_status();
+        std::lock_guard<hp::Status> lock{status};
+        status.DhwForcedActive = forced;
+        publish_binary_sensor_status(F("mode_dhw_forced"), forced);
     }
 
     void on_turn_on_off_command(const String& payload)
     {
-      bool turnON = payload == "ON";
+        bool turnON = payload == "ON";
 
-      if (!hp::set_power_mode(turnON))
+        hp::set_power_mode(turnON);
+        auto& status = hp::get_status();
+        std::lock_guard<hp::Status> lock{status};
+        if (turnON)
         {
-            log_web(F("Failed to set power mode!"));
+            status.Power = hp::Status::PowerMode::ON;
         }
         else
         {
-            auto& status = hp::get_status();
-            std::lock_guard<hp::Status> lock{status};
-            if (turnON)
-            {
-                status.Power = hp::Status::PowerMode::ON;
-            }
-            else
-            {
-                status.Power = hp::Status::PowerMode::STANDBY;
-            }
-            publish_sensor_status<String>(F("mode_power"), status.power_as_string());
+            status.Power = hp::Status::PowerMode::STANDBY;
         }
+
+        publish_sensor_status<String>(F("mode_power"), status.power_as_string());
     }
 
     void mqtt_callback(String& topic, String& payload)
@@ -415,7 +380,7 @@ off
     {
         String stringName = name;
         stringName.replace(" ", "_");
-        return  stringName + "_" + config_instance().UniqueId;
+        return stringName + "_" + config_instance().UniqueId;
     }
 
     void add_discovery_device_object(JsonObject obj)
@@ -436,7 +401,7 @@ off
         const int RETRY_COUNT = 3;
         for (int i = 0; i < RETRY_COUNT; ++i)
         {
-            if (mqttClient.publish(topic, payload, retain, static_cast<int>(LWMQTT_QOS2)))
+            if (mqttClient.publish(topic, payload, retain, static_cast<int>(LWMQTT_QOS1)))
             {
                 return true;
             }
@@ -447,7 +412,7 @@ off
 
             if (!mqttClient.connected())
             {
-                log_web(F("MQTT network disconnection detected trying to publish: '%s' attempting to re-connect: %d/%d"), topic.c_str(), i+1, RETRY_COUNT);
+                log_web(F("MQTT network disconnection detected trying to publish: '%s' attempting to re-connect: %d/%d"), topic.c_str(), i + 1, RETRY_COUNT);
                 connect_mqtt();
             }
         }
@@ -684,9 +649,10 @@ off
         options.add("Heat Target Temperature");
         options.add("Heat Flow Temperature");
         options.add("Heat Compensation Curve");
-        if (config.CoolEnabled) {
-          options.add("Cool Target Temperature");
-          options.add("Cool Flow Temperature");
+        if (config.CoolEnabled)
+        {
+            options.add("Cool Target Temperature");
+            options.add("Cool Flow Temperature");
         }
 
         if (!publish_mqtt(discoveryTopic, doc, /* retain =*/true))
@@ -1032,7 +998,6 @@ off
     {
         JsonDocument doc;
         JsonObject json = doc.to<JsonObject>();
-
 
         {
             auto& status = hp::get_status();

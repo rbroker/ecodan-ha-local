@@ -7,8 +7,10 @@
 #include <HardwareSerial.h>
 #include <freertos/task.h>
 
+#include <algorithm>
+#include <condition_variable>
 #include <mutex>
-#include <queue>
+#include <deque>
 #include <thread>
 
 namespace ehal::hp
@@ -19,8 +21,10 @@ namespace ehal::hp
 
     TaskHandle_t serialRxTaskHandle = nullptr;
     std::thread serialRxThread;
-    std::queue<Message> cmdQueue;
+    std::thread serialTxThread;
+    std::deque<Message> cmdQueue;
     std::mutex cmdQueueMutex;
+    std::condition_variable cmdQueueCv;
 
     Status status;
     float temperatureStep = 0.5f;
@@ -31,12 +35,6 @@ namespace ehal::hp
         if (!port)
         {
             log_web_ratelimit(F("Serial connection unavailable for tx"));
-            return false;
-        }
-
-        if (port.availableForWrite() < msg.size())
-        {
-            log_web(F("Serial tx buffer size: %u"), port.availableForWrite());
             return false;
         }
 
@@ -58,7 +56,7 @@ namespace ehal::hp
         std::lock_guard<std::mutex> lock{cmdQueueMutex};
 
         while (!cmdQueue.empty())
-            cmdQueue.pop();
+            cmdQueue.pop_front();
     }
 
     void resync_rx()
@@ -152,85 +150,60 @@ namespace ehal::hp
         return true;
     }
 
-    bool begin_connect()
+    void begin_connect()
     {
         Message cmd{MsgType::CONNECT_CMD};
         char payload[2] = {0xCA, 0x01};
         cmd.write_payload(payload, sizeof(payload));
 
-        if (!serial_tx(cmd))
-        {
-            log_web(F("Failed to tx CONNECT_CMD!"));
-            return false;
-        }
-
-        return true;
-    }
-
-    bool dispatch_next_cmd()
-    {
-        Message msg;
         {
             std::lock_guard<std::mutex> lock{cmdQueueMutex};
-
-            if (cmdQueue.empty())
-            {
-                return true;
-            }
-
-            msg = std::move(cmdQueue.front());
-            cmdQueue.pop();
+            cmdQueue.emplace_back(std::move(cmd));
         }
 
-        if (!serial_tx(msg))
-        {
-            log_web(F("Unable to dispatch status update request, flushing queued requests..."));
-
-            clear_command_queue();
-
-            connected = false;
-            return false;
-        }
-
-        return true;
+        cmdQueueCv.notify_one();
     }
 
-    bool begin_get_status()
+    void begin_get_status()
     {
         {
-            std::unique_lock<std::mutex> lock{cmdQueueMutex, std::try_to_lock};
+            std::unique_lock<std::mutex> lock{cmdQueueMutex};
 
-            if (!lock)
-            {
-                log_web(F("Unable to acquire lock for status query, owned by another thread!"));
-                delay(1);
-            }
-
+            // Avoid building up an unbounded number of status updates in the command queue
+            // if for some reason we're not processing them. To avoid accidentally interrupting
+            // MQTT set requests and such from home assistant, only clear other GET commands.
             if (!cmdQueue.empty())
             {
-                log_web(F("command queue was not empty when queueing status query: %u"), cmdQueue.size());
+                auto end = std::end(cmdQueue);
+                auto it = std::remove_if(std::begin(cmdQueue), end, [](Message const& msg)
+                {
+                    return msg.type() == MsgType::GET_CMD;
+                });
 
-                while (!cmdQueue.empty())
-                    cmdQueue.pop();
+                if (it != end)
+                {
+                    log_web(F("command queue was not empty when queueing status query: %u"), cmdQueue.size());
+                    cmdQueue.erase(it, end);
+                }
             }
 
-            cmdQueue.emplace(MsgType::GET_CMD, GetType::DEFROST_STATE);
-            cmdQueue.emplace(MsgType::GET_CMD, GetType::COMPRESSOR_FREQUENCY);
-            cmdQueue.emplace(MsgType::GET_CMD, GetType::FORCED_DHW_STATE);
-            cmdQueue.emplace(MsgType::GET_CMD, GetType::HEATING_POWER);
-            cmdQueue.emplace(MsgType::GET_CMD, GetType::TEMPERATURE_CONFIG);
-            cmdQueue.emplace(MsgType::GET_CMD, GetType::SH_TEMPERATURE_STATE);
-            cmdQueue.emplace(MsgType::GET_CMD, GetType::DHW_TEMPERATURE_STATE_A);
-            cmdQueue.emplace(MsgType::GET_CMD, GetType::DHW_TEMPERATURE_STATE_B);
+            cmdQueue.emplace_back(MsgType::GET_CMD, GetType::DEFROST_STATE);
+            cmdQueue.emplace_back(MsgType::GET_CMD, GetType::COMPRESSOR_FREQUENCY);
+            cmdQueue.emplace_back(MsgType::GET_CMD, GetType::FORCED_DHW_STATE);
+            cmdQueue.emplace_back(MsgType::GET_CMD, GetType::HEATING_POWER);
+            cmdQueue.emplace_back(MsgType::GET_CMD, GetType::TEMPERATURE_CONFIG);
+            cmdQueue.emplace_back(MsgType::GET_CMD, GetType::SH_TEMPERATURE_STATE);
+            cmdQueue.emplace_back(MsgType::GET_CMD, GetType::DHW_TEMPERATURE_STATE_A);
+            cmdQueue.emplace_back(MsgType::GET_CMD, GetType::DHW_TEMPERATURE_STATE_B);
             // cmdQueue.emplace(MsgType::GET_CMD, GetType::ACTIVE_TIME);
-            cmdQueue.emplace(MsgType::GET_CMD, GetType::FLOW_RATE);
-            cmdQueue.emplace(MsgType::GET_CMD, GetType::MODE_FLAGS_A);
-            cmdQueue.emplace(MsgType::GET_CMD, GetType::MODE_FLAGS_B);
-            cmdQueue.emplace(MsgType::GET_CMD, GetType::ENERGY_USAGE);
-            cmdQueue.emplace(MsgType::GET_CMD, GetType::ENERGY_DELIVERY);
+            cmdQueue.emplace_back(MsgType::GET_CMD, GetType::FLOW_RATE);
+            cmdQueue.emplace_back(MsgType::GET_CMD, GetType::MODE_FLAGS_A);
+            cmdQueue.emplace_back(MsgType::GET_CMD, GetType::MODE_FLAGS_B);
+            cmdQueue.emplace_back(MsgType::GET_CMD, GetType::ENERGY_USAGE);
+            cmdQueue.emplace_back(MsgType::GET_CMD, GetType::ENERGY_DELIVERY);
         }
 
-        return dispatch_next_cmd();
+        cmdQueueCv.notify_one();
     }
 
     String get_device_model()
@@ -258,18 +231,18 @@ namespace ehal::hp
         return 28.0f;
     }
 
-    bool set_z1_target_temperature(float newTemp)
+    void set_z1_target_temperature(float newTemp)
     {
         if (newTemp > get_max_thermostat_temperature())
         {
             log_web(F("Thermostat setting exceeds maximum allowed!"));
-            return false;
+            return;
         }
 
         if (newTemp < get_min_thermostat_temperature())
         {
             log_web(F("Thermostat setting is lower than minimum allowed!"));
-            return false;
+            return;
         }
 
         Message cmd{MsgType::SET_CMD, SetType::BASIC_SETTINGS};
@@ -279,16 +252,10 @@ namespace ehal::hp
 
         {
             std::lock_guard<std::mutex> lock{cmdQueueMutex};
-            cmdQueue.emplace(std::move(cmd));
+            cmdQueue.emplace_back(std::move(cmd));
         }
 
-        if (!dispatch_next_cmd())
-        {
-            log_web(F("command dispatch failed for z1 temperature setting!"));
-            return false;
-        }
-
-        return true;
+        cmdQueueCv.notify_one();
     }
 
     // From FTC6 installation manual ("DHW max. temp.")
@@ -315,18 +282,18 @@ namespace ehal::hp
         return (coolMode == mode) ? 25.0f : 60.0f;
     }
 
-    bool set_z1_flow_target_temperature(float newTemp)
+    void set_z1_flow_target_temperature(float newTemp)
     {
         if (newTemp > get_max_flow_target_temperature(status.hp_mode_as_string()))
         {
             log_web(F("Z1 flow temperature setting exceeds maximum allowed (%s)!"), String(get_max_flow_target_temperature(status.hp_mode_as_string())).c_str());
-            return false;
+            return;
         }
 
         if (newTemp < get_min_flow_target_temperature(status.hp_mode_as_string()))
         {
             log_web(F("Z1 flow temperature setting is lower than minimum allowed (%s)!"), String(get_min_flow_target_temperature(status.hp_mode_as_string())).c_str());
-            return false;
+            return;
         }
 
         Message cmd{MsgType::SET_CMD, SetType::BASIC_SETTINGS};
@@ -337,30 +304,24 @@ namespace ehal::hp
 
         {
             std::lock_guard<std::mutex> lock{cmdQueueMutex};
-            cmdQueue.emplace(std::move(cmd));
+            cmdQueue.emplace_back(std::move(cmd));
         }
 
-        if (!dispatch_next_cmd())
-        {
-            log_web(F("command dispatch failed for Z1 flow target temperature setting!"));
-            return false;
-        }
-
-        return true;
+        cmdQueueCv.notify_one();
     }
 
-    bool set_dhw_target_temperature(float newTemp)
+    void set_dhw_target_temperature(float newTemp)
     {
         if (newTemp > get_max_dhw_temperature())
         {
             log_web(F("DHW setting exceeds maximum allowed (%s)!"), String(get_max_dhw_temperature()).c_str());
-            return false;
+            return;
         }
 
         if (newTemp < get_min_dhw_temperature())
         {
             log_web(F("DHW setting is lower than minimum allowed (%s)!"), String(get_min_dhw_temperature()).c_str());
-            return false;
+            return;
         }
 
         Message cmd{MsgType::SET_CMD, SetType::BASIC_SETTINGS};
@@ -369,30 +330,34 @@ namespace ehal::hp
 
         {
             std::lock_guard<std::mutex> lock{cmdQueueMutex};
-            cmdQueue.emplace(std::move(cmd));
+            cmdQueue.emplace_back(std::move(cmd));
         }
 
-        if (!dispatch_next_cmd())
-        {
-            log_web(F("command dispatch failed for DHW temperature setting!"));
-            return false;
-        }
-
-        return true;
+        cmdQueueCv.notify_one();
     }
 
-    bool set_dhw_mode(String mode)
+    void set_dhw_mode(String mode)
     {
         Status::DhwMode dhwMode = Status::DhwMode::NORMAL;
 
         if (mode == "off")
-            return set_dhw_force(false);
+        {
+            set_dhw_force(false);
+            return;
+        }
         else if (mode == "performance")
+        {
             dhwMode = Status::DhwMode::NORMAL;
+        }
         else if (mode == "eco")
+        {
             dhwMode = Status::DhwMode::ECO;
+        }
         else
-            return false;
+        {
+            log_web(F("Unknown DHW mode set request: %s"), mode.c_str());
+            return;
+        }
 
         Message cmd{MsgType::SET_CMD, SetType::BASIC_SETTINGS};
         cmd[1] = SET_SETTINGS_FLAG_DHW_MODE;
@@ -400,19 +365,13 @@ namespace ehal::hp
 
         {
             std::lock_guard<std::mutex> lock{cmdQueueMutex};
-            cmdQueue.emplace(std::move(cmd));
+            cmdQueue.emplace_back(std::move(cmd));
         }
 
-        if (!dispatch_next_cmd())
-        {
-            log_web(F("command dispatch failed for DHW temperature setting!"));
-            return false;
-        }
-
-        return true;
+        cmdQueueCv.notify_one();
     }
 
-    bool set_dhw_force(bool on)
+    void set_dhw_force(bool on)
     {
         Message cmd{MsgType::SET_CMD, SetType::DHW_SETTING};
         cmd[1] = SET_SETTINGS_FLAG_MODE_TOGGLE;
@@ -420,38 +379,27 @@ namespace ehal::hp
 
         {
             std::lock_guard<std::mutex> lock{cmdQueueMutex};
-            cmdQueue.emplace(std::move(cmd));
+            cmdQueue.emplace_back(std::move(cmd));
         }
 
-        if (!dispatch_next_cmd())
-        {
-            log_web(F("command dispatch failed for DHW force setting!"));
-            return false;
-        }
-
-        return true;
+        cmdQueueCv.notify_one();
     }
 
-    bool set_power_mode(bool on)
+    void set_power_mode(bool on)
     {
         Message cmd{MsgType::SET_CMD, SetType::BASIC_SETTINGS};
         cmd[1] = SET_SETTINGS_FLAG_MODE_TOGGLE;
         cmd[3] = on ? 1 : 0;
+
         {
             std::lock_guard<std::mutex> lock{cmdQueueMutex};
-            cmdQueue.emplace(std::move(cmd));
+            cmdQueue.emplace_back(std::move(cmd));
         }
 
-        if (!dispatch_next_cmd())
-        {
-            log_web(F("command dispatch failed for DHW force setting!"));
-            return false;
-        }
-
-        return true;
+        cmdQueueCv.notify_one();
     }
 
-    bool set_hp_mode(uint8_t mode)
+    void set_hp_mode(uint8_t mode)
     {
         Message cmd{MsgType::SET_CMD, SetType::BASIC_SETTINGS};
         cmd[1] = SET_SETTINGS_FLAG_HP_MODE;
@@ -459,16 +407,10 @@ namespace ehal::hp
 
         {
             std::lock_guard<std::mutex> lock{cmdQueueMutex};
-            cmdQueue.emplace(std::move(cmd));
+            cmdQueue.emplace_back(std::move(cmd));
         }
 
-        if (!dispatch_next_cmd())
-        {
-            log_web(F("command dispatch failed for heat pump mode setting!"));
-            return false;
-        }
-
-        return true;
+        cmdQueueCv.notify_one();
     }
 
     void handle_set_response(Message& res)
@@ -557,17 +499,13 @@ namespace ehal::hp
                 break;
             }
         }
-
-        if (!dispatch_next_cmd())
-        {
-            log_web(F("Failed to dispatch status update command!"));
-        }
     }
 
     void handle_connect_response(Message& res)
     {
         log_web(F("connection reply received from heat pump"));
 
+        std::lock_guard<std::mutex> lock{cmdQueueMutex};
         connected = true;
     }
 
@@ -638,6 +576,61 @@ namespace ehal::hp
         }
     }
 
+    void serial_tx_thread()
+    {
+        ehal::add_thread_to_watchdog();
+
+        Message msg;
+
+        while (true)
+        {
+            try
+            {
+                ehal::ping_watchdog();
+
+                {
+                    std::unique_lock<std::mutex> lock{cmdQueueMutex};
+
+                    bool hasMessage = cmdQueueCv.wait_for(lock, std::chrono::seconds(5), [&]()
+                    {
+                        return !cmdQueue.empty();
+                    });
+
+                    // We timed out, so ping the watchdog and go back to waiting.
+                    if (!hasMessage)
+                        continue;
+
+                    msg = std::move(cmdQueue.front());
+                    cmdQueue.pop_front();
+                }
+
+                // 2400 baud is actually pretty slow
+                for (int i = 0; (port.availableForWrite() < msg.size()) && i < 250; ++i)
+                {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                }
+
+                if (port.availableForWrite() < msg.size())
+                {
+                    log_web(F("Abandoning message write, serial port did not become writable in time: %u < %u"), port.availableForWrite(), msg.size());
+                    continue;
+                }
+
+                bool success = serial_tx(msg);
+
+                if (!success)
+                {
+                    std::lock_guard<std::mutex> lock{cmdQueueMutex};
+                    connected = false;
+                }
+            }
+            catch (std::exception const& ex)
+            {
+                ehal::log_web(F("Exception occurred on serial tx thread: %s"), ex.what());
+            }
+        }
+    }
+
     bool initialize()
     {
         auto& config = config_instance();
@@ -652,11 +645,9 @@ namespace ehal::hp
         port.begin(2400, SERIAL_8E1, config.SerialRxPort, config.SerialTxPort);
 
         serialRxThread = std::thread{serial_rx_thread};
+        serialTxThread = std::thread{serial_tx_thread};
 
-        if (!begin_connect())
-        {
-            log_web(F("Failed to start heatpump connection proceedure..."));
-        }
+        begin_connect();
 
         return true;
     }
@@ -670,10 +661,7 @@ namespace ehal::hp
             if (now - last_attempt > std::chrono::seconds(10))
             {
                 last_attempt = now;
-                if (!begin_connect())
-                {
-                    log_web(F("Failed to start heatpump connection proceedure..."));
-                }
+                begin_connect();
             }
 
             return;
@@ -686,16 +674,14 @@ namespace ehal::hp
             if (now - last_update > std::chrono::seconds(60))
             {
                 last_update = now;
-                if (!begin_get_status())
-                {
-                    log_web(F("Failed to begin heatpump status update!"));
-                }
+                begin_get_status();
             }
         }
     }
 
     bool is_connected()
     {
+        std::lock_guard<std::mutex> lock{cmdQueueMutex};
         return connected;
     }
 

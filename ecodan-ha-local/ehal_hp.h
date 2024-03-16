@@ -247,16 +247,16 @@ namespace ehal::hp
     float get_min_flow_target_temperature(String mode);
     float get_max_flow_target_temperature(String mode);
 
-    bool set_z1_target_temperature(float value);
-    bool set_z1_flow_target_temperature(float value);
-    bool set_dhw_target_temperature(float value);
-    bool set_dhw_mode(String mode);
-    bool set_dhw_force(bool on);
-    bool set_power_mode(bool on);
-    bool set_hp_mode(uint8_t mode);
+    void set_z1_target_temperature(float value);
+    void set_z1_flow_target_temperature(float value);
+    void set_dhw_target_temperature(float value);
+    void set_dhw_mode(String mode);
+    void set_dhw_force(bool on);
+    void set_power_mode(bool on);
+    void set_hp_mode(uint8_t mode);
 
-    bool begin_connect();
-    bool begin_update_status();
+    void begin_connect();
+    void begin_update_status();
 
     bool initialize();
     void handle_loop();
