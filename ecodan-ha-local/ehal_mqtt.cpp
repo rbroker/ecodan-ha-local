@@ -1011,6 +1011,9 @@ off
         if (!publish_ha_float_sensor_auto_discover(F("sh_cop"), SensorType::COP))
             return;
 
+        if (!publish_ha_float_sensor_auto_discover(F("cool_cop"), SensorType::COP))
+            return;
+
         // Diagnostic sensors
         if (!publish_ha_diagnostic_sensor_auto_discover(F("Heat pump connection state"), SensorType::CONNECTIVITY))
             return;
@@ -1190,6 +1193,9 @@ off
             return;
 
         if (!publish_sensor_status<float>(F("sh_cop"), status.EnergyConsumedHeating > 0.0f ? status.EnergyDeliveredHeating / status.EnergyConsumedHeating : 0.0f))
+            return;
+        
+        if (!publish_sensor_status<float>(F("cool_cop"), status.EnergyConsumedCooling > 0.0f ? status.EnergyDeliveredCooling / status.EnergyConsumedCooling : 0.0f))
             return;
 
         // Diagnostic
