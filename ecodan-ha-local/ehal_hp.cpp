@@ -42,6 +42,7 @@ namespace ehal::hp
 
         msg.set_checksum();
         port.write(msg.buffer(), msg.size());
+	port.flush();
 
         auto& config = config_instance();
         if (config.DumpPackets)
