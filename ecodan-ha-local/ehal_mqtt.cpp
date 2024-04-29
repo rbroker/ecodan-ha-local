@@ -297,6 +297,30 @@ off
         }
     }
 
+    void holiday_mode_on_off_command(const String& payload)
+    {
+      bool turnON = payload == "ON";
+
+      if (!hp::set_holiday_mode(turnON))
+        {
+            log_web(F("Failed to set holiday mode!"));
+        }
+        else
+        {
+            auto& status = hp::get_status();
+            std::lock_guard<hp::Status> lock{status};
+            if (turnON)
+            {
+                status.setHolidayMode = hp::Status::HolMode::ON;
+            }
+            else
+            {
+                status.setHolidayMode = hp::Status::HolMode::OFF;
+            }
+            publish_binary_sensor_status(F("holiday_mode"), status.holmode_as_string());
+        }
+    }
+
     void mqtt_callback(String& topic, String& payload)
     {
         try
@@ -310,7 +334,8 @@ off
             String dhwTempCmdTopic = config.MqttTopic + "/" + unique_entity_name(F("dhw_water_heater")) + F("/set");
             String dhwModeCmdTopic = config.MqttTopic + "/" + unique_entity_name(F("dhw_mode")) + F("/set");
             String shModeCmdTopic = config.MqttTopic + "/" + unique_entity_name(F("sh_mode")) + F("/set");
-
+            String setHolidayModeTopic = config.MqttTopic + "/" + unique_entity_name(F("holiday_mode")) + F("/set");
+            
             log_web(F("MQTT topic received: %s: '%s'"), topic.c_str(), payload.c_str());
 
             if (tempCmdTopic == topic)
@@ -340,6 +365,10 @@ off
             else if (turnOnOffCmdTopic == topic)
             {
                 on_turn_on_off_command(payload);
+            }
+            else if (setHolidayModeTopic == topic)
+            {
+                holiday_mode_on_off_command(payload);
             }
         }
         catch (std::exception const& ex)
@@ -548,6 +577,38 @@ off
             return false;
         }
 
+        return true;
+    }
+
+    bool publish_ha_switch_holiday_mode_auto_discover()
+    {
+        // https://www.home-assistant.io/integrations/switch.mqtt/
+        String uniqueName = unique_entity_name(F("holiday_mode"));
+        const auto& config = config_instance();
+        String discoveryTopic = String(F("homeassistant/switch/")) + uniqueName + F("/config");
+        String stateTopic = config.MqttTopic + "/" + uniqueName + F("/state");
+        String cmdTopic = config.MqttTopic + "/" + uniqueName + F("/set");
+
+        JsonDocument doc;
+        JsonObject payloadJson = doc.to<JsonObject>();
+        payloadJson[F("name")] = uniqueName;
+        payloadJson[F("unique_id")] = uniqueName;
+        payloadJson[F("icon")] = F("mdi:toggle-switch-variant");
+
+        add_discovery_device_object(payloadJson);
+
+        payloadJson[F("stat_t")] = stateTopic;
+        payloadJson[F("stat_t_tpl")] = F("{{ value }}");
+        payloadJson[F("stat_on")] = F("on");
+        payloadJson[F("stat_off")] = F("off");
+        payloadJson[F("cmd_t")] = cmdTopic;
+        payloadJson[F("cmd_tpl")] = F("{{ value }}");
+
+        if (!publish_mqtt(discoveryTopic, doc, /* retain =*/true))
+        {
+            log_web(F("Failed to publish homeassistant Holiday Mode entity auto-discover"));
+            return false;
+        }
         return true;
     }
 
@@ -912,6 +973,9 @@ off
         if (!publish_ha_set_sh_mode_auto_discover())
             return;
 
+        if (!publish_ha_switch_holiday_mode_auto_discover())
+            return;
+
         if (!publish_ha_binary_sensor_auto_discover(F("mode_defrost")))
             return;
 
@@ -1014,7 +1078,7 @@ off
         if (!publish_ha_float_sensor_auto_discover(F("cool_cop"), SensorType::COP))
             return;
 
-        if (!publish_ha_binary_sensor_auto_discover(F("mode_holiday")))
+        if (!publish_ha_binary_sensor_auto_discover(F("holiday_mode")))
             return;
         // Diagnostic sensors
         if (!publish_ha_diagnostic_sensor_auto_discover(F("Heat pump connection state"), SensorType::CONNECTIVITY))
@@ -1200,7 +1264,7 @@ off
         if (!publish_sensor_status<float>(F("cool_cop"), status.EnergyConsumedCooling > 0.0f ? status.EnergyDeliveredCooling / status.EnergyConsumedCooling : 0.0f))
             return;
 
-        if (!publish_binary_sensor_status(F("mode_holiday"), status.HolidayMode))
+        if (!publish_binary_sensor_status(F("holiday_mode"), status.HolidayMode))
             return;
         // Diagnostic
         if (!publish_binary_sensor_status(F("Heat pump connection state"), hp::is_connected()))
@@ -1288,6 +1352,12 @@ off
             if (!mqttClient.subscribe(config.MqttTopic + "/" + unique_entity_name(F("sh_mode")) + F("/set")))
             {
                 log_web(F("Failed to subscribe to SH mode command topic!"));
+                return false;
+            }
+
+            if (!mqttClient.subscribe(config.MqttTopic + "/" + unique_entity_name(F("holiday_mode")) + F("/set")))
+            {
+                log_web(F("Failed to subscribe to Holiday Mode command topic!"));
                 return false;
             }
 
