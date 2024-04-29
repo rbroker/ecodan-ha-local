@@ -1014,6 +1014,8 @@ off
         if (!publish_ha_float_sensor_auto_discover(F("cool_cop"), SensorType::COP))
             return;
 
+        if (!publish_ha_binary_sensor_auto_discover(F("mode_holiday")))
+            return;
         // Diagnostic sensors
         if (!publish_ha_diagnostic_sensor_auto_discover(F("Heat pump connection state"), SensorType::CONNECTIVITY))
             return;
@@ -1198,6 +1200,8 @@ off
         if (!publish_sensor_status<float>(F("cool_cop"), status.EnergyConsumedCooling > 0.0f ? status.EnergyDeliveredCooling / status.EnergyConsumedCooling : 0.0f))
             return;
 
+        if (!publish_binary_sensor_status(F("mode_holiday"), status.HolidayMode))
+            return;
         // Diagnostic
         if (!publish_binary_sensor_status(F("Heat pump connection state"), hp::is_connected()))
             return;
