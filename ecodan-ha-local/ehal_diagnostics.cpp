@@ -148,8 +148,15 @@ namespace ehal
     void init_watchdog()
     {
 #if ARDUINO_ARCH_ESP32
-        esp_task_wdt_init(30, true); // Reset the board if the watchdog timer isn't reset every 30s.
-        ehal::log_web(F("Watchdog initialized."));
+        // Reset the board if the watchdog timer isn't reset every 30s.
+        esp_task_wdt_config_t config = {};
+        config.timeout_ms = 30000;
+        config.trigger_panic = true;
+        esp_err_t ret = esp_task_wdt_init(&config);
+        if (ret == ESP_OK)
+            ehal::log_web(F("Watchdog initialized."));
+        else
+            ehal::log_web(F("Watchdog initialization failed!"));
 #endif
     }
 
