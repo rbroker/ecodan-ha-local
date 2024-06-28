@@ -68,6 +68,10 @@ Uses the CN105 connector on the Cased Flow Temp Controller (FTC6 in my setup) to
 - WROOM-32
 
 ## Library Dependencies
+The esp32 board package from the Arduino IDE "Boards Manager":
+- esp32 v3.0.2
+
+Should be installed via the Arduino IDE "Library Manager":
 - ArduinoJson v7.0.3
 - Seeed_Arduino_mbedtls v3.0.1
 - MQTT v2.5.2

@@ -12,6 +12,7 @@
 #include <DNSServer.h>
 #include <Update.h>
 #include <WebServer.h>
+#include <WiFi.h>
 
 #include <chrono>
 #include <thread>
