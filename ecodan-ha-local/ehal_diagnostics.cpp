@@ -17,7 +17,7 @@
 #endif
 
 #if CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32C3
-#include <driver/temp_sensor.h>
+#include <driver/temperature_sensor.h>
 #endif
 
 namespace ehal
@@ -128,16 +128,21 @@ namespace ehal
     float get_cpu_temperature()
     {
 #if CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32C3
-        static bool started = false;
+        static temperature_sensor_handle_t handle = nullptr;
 
-        if (!started)
+        if (!handle)
         {
-            temp_sensor_start();
-            started = true;
+            temperature_sensor_config_t config = {
+                .range_min = 40,
+                .range_max = 80
+            };
+            ESP_ERROR_CHECK(temperature_sensor_install(&config, &handle));
+
+            ESP_ERROR_CHECK(temperature_sensor_enable(handle)); 
         }
 
         float temp;
-        temp_sensor_read_celsius(&temp);
+        temperature_sensor_get_celsius(handle, &temp);
 
         return temp;
 #else
