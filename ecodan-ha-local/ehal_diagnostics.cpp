@@ -14,6 +14,7 @@
 
 #if ARDUINO_ARCH_ESP32
 #include <esp_task_wdt.h>
+#include <esp_chip_info.h>
 #endif
 
 #if CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32C3
@@ -153,11 +154,19 @@ namespace ehal
     void init_watchdog()
     {
 #if ARDUINO_ARCH_ESP32
+        esp_chip_info_t info = {};
+        esp_chip_info(&info);
+
         // Reset the board if the watchdog timer isn't reset every 30s.
         esp_task_wdt_config_t config = {};
         config.timeout_ms = 30000;
+        config.idle_core_mask = ((1 << info.cores) - 1);
         config.trigger_panic = true;
+        
         esp_err_t ret = esp_task_wdt_init(&config);
+        if (ret == ESP_ERR_INVALID_STATE)
+            ret = esp_task_wdt_reconfigure(&config);
+        
         if (ret == ESP_OK)
             ehal::log_web(F("Watchdog initialized."));
         else
