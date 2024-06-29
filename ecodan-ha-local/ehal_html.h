@@ -227,8 +227,8 @@ namespace ehal
         <td>{{wifi_mac}}</td>
     </tr>
     <tr>
-        <td>WiFi Tx Power:</td>
-        <td>{{wifi_tx_power}}</td>
+        <td>WiFi RSSI:</td>
+        <td>{{wifi_rssi}}dBm</td>
     </tr>
     <tr>
         <td>Device Boot Time (UTC):</td>
