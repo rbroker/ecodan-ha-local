@@ -1,3 +1,4 @@
 ecodan-ha-local/build/
 .vscode
 .pio
+platformio.ini
