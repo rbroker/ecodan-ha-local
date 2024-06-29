@@ -1303,9 +1303,15 @@ off
             return false;
         }
 
+
         auto& config = config_instance();
-        mqttClient.begin(config.MqttServer.c_str(), config.MqttPort, espClient);
+        
+        const int KEEPALIVE_TIME_SECONDS = 90;
+        const bool USE_CLEAN_SESSION = false; // Persistent MQTT session
+        const int COMMAND_TIMEOUT_MILLISECONDS = 10000;
+        mqttClient.setOptions(KEEPALIVE_TIME_SECONDS, USE_CLEAN_SESSION, COMMAND_TIMEOUT_MILLISECONDS);
         mqttClient.onMessage(mqtt_callback);
+        mqttClient.begin(config.MqttServer.c_str(), config.MqttPort, espClient);
 
         if (connect_mqtt())
         {

@@ -188,9 +188,16 @@ void reboot_if_wifi_disconnected_too_long()
     {
         if (wifiDisconnectDetected != std::chrono::steady_clock::time_point::min())
         {
-            // If it's been more than maxWifiDisconnectLength since we had a WiFi connection, restart.
-            if ((std::chrono::steady_clock::now() - wifiDisconnectDetected) > maxWifiDisconnectLength)
-                ESP.restart();
+            if (!WiFi.reconnect())
+            {
+                // If it's been more than maxWifiDisconnectLength since we had a WiFi connection, restart.
+                if ((std::chrono::steady_clock::now() - wifiDisconnectDetected) > maxWifiDisconnectLength)
+                    ESP.restart();
+            }
+            else
+            {
+                ehal::log_web(F("WiFi disconnected, but reconnection was successful!"));
+            }
         }
         else
         {
