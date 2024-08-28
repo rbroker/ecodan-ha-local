@@ -1224,7 +1224,18 @@ off
         if (!config.MqttPassword.isEmpty() && !config.MqttUserName.isEmpty())
         {
             log_web(F("MQTT user '%s' has configured password, connecting with credentials..."), config.MqttUserName.c_str());
-            if (!mqttClient.connect(WiFi.localIP().toString().c_str(), config.MqttUserName.c_str(), config.MqttPassword.c_str()))
+            int mqtt_connection_retries = 0;
+            while (!mqttClient.connect(WiFi.localIP().toString().c_str(), config.MqttUserName.c_str(), config.MqttPassword.c_str())) 
+            {
+                log_web(F("Connecting to MQTT server ..."));
+                delay(1000);
+                if (mqtt_connection_retries > 10) 
+                {
+                    break;
+                }
+                mqtt_connection_retries++;
+            }
+            if (mqtt_connection_retries > 10)
             {
                 log_web(F("MQTT connection failure: '%s'"), get_connection_error_string().c_str());
                 return false;
@@ -1233,7 +1244,18 @@ off
         else
         {
             log_web(F("MQTT username/password not configured, connecting as anonymous user..."));
-            if (!mqttClient.connect(WiFi.localIP().toString().c_str()))
+            int mqtt_connection_retries = 0;
+            while (!mqttClient.connect(WiFi.localIP().toString().c_str())) 
+            {
+                log_web(F("Connecting to MQTT server ..."));
+                delay(1000);
+                if (mqtt_connection_retries > 10) 
+                {
+                    break;
+                }
+                mqtt_connection_retries++;
+            }
+            if (mqtt_connection_retries > 10)
             {
                 log_web(F("MQTT connection failure: '%s'"), get_connection_error_string().c_str());
                 return false;
