@@ -40,6 +40,12 @@ namespace ehal::hp
             ON = 1
         };
 
+        enum class HolMode : uint8_t
+        {
+            OFF = 0,
+            ON = 1
+        };
+
         enum class OperationMode : uint8_t
         {
             OFF = 0,
@@ -68,6 +74,7 @@ namespace ehal::hp
         // Modes
         PowerMode Power;
         OperationMode Operation;
+        HolMode setHolidayMode;
         bool HolidayMode;
         bool DhwTimerMode;
         DhwMode HotWaterMode;
@@ -137,6 +144,19 @@ namespace ehal::hp
                     return F("Standby");
                 default:
                     return F("Unknown");
+            }
+        }
+
+        String holmode_as_string()
+        {
+            switch (setHolidayMode)
+            {
+                case HolMode::ON:
+                    return F("on");
+                case HolMode::OFF:
+                    return F("off");
+                default:
+                    return F("unknown");
             }
         }
 
@@ -254,6 +274,7 @@ namespace ehal::hp
     bool set_dhw_force(bool on);
     bool set_power_mode(bool on);
     bool set_hp_mode(uint8_t mode);
+    bool set_holiday_mode(bool on);
 
     bool begin_connect();
     bool begin_update_status();

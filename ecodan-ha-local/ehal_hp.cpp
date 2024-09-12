@@ -433,6 +433,26 @@ namespace ehal::hp
         return true;
     }
 
+    bool set_holiday_mode(bool on)
+    {
+        Message cmd{MsgType::SET_CMD, SetType::DHW_SETTING};
+        cmd[1] = SET_SETTINGS_HOLIDAY_MODE_TOGGLE;
+        cmd[4] = on ? 1 : 0;
+
+        {
+            std::lock_guard<std::mutex> lock{cmdQueueMutex};
+            cmdQueue.emplace(std::move(cmd));
+        }
+
+        if (!dispatch_next_cmd())
+        {
+            log_web(F("command dispatch failed for Holiday Mode setting!"));
+            return false;
+        }
+
+        return true;
+    }
+
     bool set_power_mode(bool on)
     {
         Message cmd{MsgType::SET_CMD, SetType::BASIC_SETTINGS};
