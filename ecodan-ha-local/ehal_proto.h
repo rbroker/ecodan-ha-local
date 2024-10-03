@@ -28,6 +28,7 @@ namespace ehal::hp
 #define SET_SETTINGS_FLAG_HP_MODE 0x08
 #define SET_SETTINGS_FLAG_DHW_MODE 0x04
 #define SET_SETTINGS_FLAG_MODE_TOGGLE 0x1
+#define SET_SETTINGS_HOLIDAY_MODE_TOGGLE 0x2
 
     enum class SetZone
     {
