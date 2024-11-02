@@ -352,6 +352,7 @@ namespace ehal::http
         page.replace(F("{{device_boot_time}}"), ehal::config_instance().BootTime);
 
         page.replace(F("{{ha_hp_entity}}"), String(F("climate.")) + ehal::mqtt::unique_entity_name(F("climate_control")));
+        page.replace(F("{{ha_hp_z2_entity}}"), String(F("climate.")) + ehal::mqtt::unique_entity_name(F("climate_control_z2")));
 
         page.replace(F("{{hp_tx_count}}"), uint64_to_string(hp::get_tx_msg_count()));
         page.replace(F("{{hp_rx_count}}"), uint64_to_string(hp::get_rx_msg_count()));

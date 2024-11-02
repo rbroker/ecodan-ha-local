@@ -235,8 +235,12 @@ namespace ehal
         <td>{{device_boot_time}}</td>
     </tr>
     <tr>
-        <td>HomeAssistant Heat Pump Entity:</td>
+        <td>HomeAssistant Heat Pump Zone 1 Entity:</td>
         <td>{{ha_hp_entity}}</td>
+    </tr>
+    <tr>
+        <td>HomeAssistant Heat Pump Zone 2 Entity:</td>
+        <td>{{ha_hp_z2_entity}}</td>
     </tr>
     <tr>
         <td>Heat Pump Message Tx Count:</td>

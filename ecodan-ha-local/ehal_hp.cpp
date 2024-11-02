@@ -292,6 +292,42 @@ namespace ehal::hp
         return true;
     }
 
+    bool set_z2_target_temperature(float newTemp)
+    {
+        if (newTemp > get_max_thermostat_temperature())
+        {
+            log_web(F("Thermostat setting exceeds maximum allowed!"));
+            return false;
+        }
+
+        if (newTemp < get_min_thermostat_temperature())
+        {
+            log_web(F("Thermostat setting is lower than minimum allowed!"));
+            return false;
+        }
+
+        // Using SetZone::ZONE_2 seems to reset Zone1 to zero therefore we set both at the same time.
+        // SetZone::ZONE_2 is labelled as (Probably) in the CN105 docs so we dont trust it
+        Message cmd{MsgType::SET_CMD, SetType::BASIC_SETTINGS};
+        cmd[1] = SET_SETTINGS_FLAG_ZONE_TEMPERATURE;
+        cmd[2] = static_cast<uint8_t>(SetZone::BOTH);
+        cmd.set_float16(status.Zone1SetTemperature, 10);
+        cmd.set_float16(newTemp, 12);
+
+        {
+            std::lock_guard<std::mutex> lock{cmdQueueMutex};
+            cmdQueue.emplace(std::move(cmd));
+        }
+
+        if (!dispatch_next_cmd())
+        {
+            log_web(F("command dispatch failed for z2 temperature setting!"));
+            return false;
+        }
+
+        return true;
+    }
+
     // From FTC6 installation manual ("DHW max. temp.")
     float get_min_dhw_temperature()
     {
@@ -344,6 +380,40 @@ namespace ehal::hp
         if (!dispatch_next_cmd())
         {
             log_web(F("command dispatch failed for Z1 flow target temperature setting!"));
+            return false;
+        }
+
+        return true;
+    }
+
+    bool set_z2_flow_target_temperature(float newTemp)
+    {
+        if (newTemp > get_max_flow_target_temperature(status.hp_mode_as_string()))
+        {
+            log_web(F("Z2 flow temperature setting exceeds maximum allowed (%s)!"), String(get_max_flow_target_temperature(status.hp_mode_as_string())).c_str());
+            return false;
+        }
+
+        if (newTemp < get_min_flow_target_temperature(status.hp_mode_as_string()))
+        {
+            log_web(F("Z2 flow temperature setting is lower than minimum allowed (%s)!"), String(get_min_flow_target_temperature(status.hp_mode_as_string())).c_str());
+            return false;
+        }
+
+        Message cmd{MsgType::SET_CMD, SetType::BASIC_SETTINGS};
+        cmd[1] = SET_SETTINGS_FLAG_ZONE_TEMPERATURE;
+        cmd[2] = static_cast<uint8_t>(SetZone::ZONE_2);
+        cmd[6] = static_cast<uint8_t>(SetHpMode::FLOW_CONTROL_MODE);
+        cmd.set_float16(newTemp, 10);
+
+        {
+            std::lock_guard<std::mutex> lock{cmdQueueMutex};
+            cmdQueue.emplace(std::move(cmd));
+        }
+
+        if (!dispatch_next_cmd())
+        {
+            log_web(F("command dispatch failed for Z2 flow target temperature setting!"));
             return false;
         }
 
