@@ -249,6 +249,8 @@ namespace ehal::hp
 
     bool set_z1_target_temperature(float value);
     bool set_z1_flow_target_temperature(float value);
+    bool set_z2_target_temperature(float value);
+    bool set_z2_flow_target_temperature(float value);
     bool set_dhw_target_temperature(float value);
     bool set_dhw_mode(String mode);
     bool set_dhw_force(bool on);

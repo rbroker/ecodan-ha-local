@@ -18,6 +18,7 @@ namespace ehal::mqtt
 #define SENSOR_STATE_TIMEOUT (300) // If we update HP state once a minute, expiring HA states after 300s seems appropriate.
 
     bool publish_climate_status();
+    bool publish_z2_climate_status();
     bool publish_binary_sensor_status(const String& name, bool on);
     template <typename T>
     bool publish_sensor_status(const String& name, T value);
@@ -168,6 +169,56 @@ off
         }
     }
 
+    void on_z2_temperature_set_command(const String& payload)
+    {
+        if (payload.isEmpty())
+        {
+            return;
+        }
+
+        float setTemperature = payload.toFloat();
+
+        if (!hp::set_z2_target_temperature(setTemperature))
+        {
+            log_web(F("Failed to set z2 target temperature!"));
+        }
+        else
+        {
+            {
+                auto& status = hp::get_status();
+                std::lock_guard<hp::Status> lock{status};
+                status.Zone2SetTemperature = setTemperature;
+            }
+
+            // Ensure lock is released, because publish_z2_climate_status will attempt
+            // to acquire it internally
+            publish_z2_climate_status();
+        }
+    }
+
+    void on_z2_flow_target_temperature_set_command(const String& payload)
+    {
+        if (payload.isEmpty())
+        {
+            return;
+        }
+
+        float setTemperature = payload.toFloat();
+
+        if (!hp::set_z2_flow_target_temperature(setTemperature))
+        {
+            log_web(F("Failed to set Z2 flow target temperature!"));
+        }
+        else
+        {
+            auto& status = hp::get_status();
+            std::lock_guard<hp::Status> lock{status};
+            status.Zone2FlowTemperatureSetPoint = setTemperature;
+
+            publish_sensor_status<float>(F("z2_flow_temp_target"), setTemperature);
+        }
+    }
+
     void on_dhw_temperature_set_command(const String& payload)
     {
         if (payload.isEmpty())
@@ -302,9 +353,12 @@ off
         try
         {
             auto& config = config_instance();
-            String climateEntity = unique_entity_name(F("climate_control"));
-            String tempCmdTopic = config.MqttTopic + "/" + climateEntity + F("/temp_cmd");
+            String z1ClimateEntity = unique_entity_name(F("climate_control"));
+            String z2ClimateEntity = unique_entity_name(F("climate_control_z2"));
+            String z1TempCmdTopic = config.MqttTopic + "/" + z1ClimateEntity + F("/temp_cmd");
             String z1FlowTargetCmdTopic = config.MqttTopic + "/" + unique_entity_name(F("z1_flow_temp_target")) + F("/set");
+            String z2TempCmdTopic = config.MqttTopic + "/" + z2ClimateEntity + F("/temp_cmd");
+            String z2FlowTargetCmdTopic = config.MqttTopic + "/" + unique_entity_name(F("z2_flow_temp_target")) + F("/set");
             String dhwForceCmdTopic = config.MqttTopic + "/" + unique_entity_name(F("force_dhw")) + F("/set");
             String turnOnOffCmdTopic = config.MqttTopic + "/" + unique_entity_name(F("turn_on_off_hp")) + F("/set");
             String dhwTempCmdTopic = config.MqttTopic + "/" + unique_entity_name(F("dhw_water_heater")) + F("/set");
@@ -313,13 +367,21 @@ off
 
             log_web(F("MQTT topic received: %s: '%s'"), topic.c_str(), payload.c_str());
 
-            if (tempCmdTopic == topic)
+            if (z1TempCmdTopic == topic)
             {
                 on_z1_temperature_set_command(payload);
             }
             else if (z1FlowTargetCmdTopic == topic)
             {
                 on_z1_flow_target_temperature_set_command(payload);
+            }
+            else if (z2TempCmdTopic == topic)
+            {
+                on_z2_temperature_set_command(payload);
+            }
+            else if (z2FlowTargetCmdTopic == topic)
+            {
+                on_z2_flow_target_temperature_set_command(payload);
             }
             else if (dhwTempCmdTopic == topic)
             {
@@ -498,6 +560,60 @@ off
             std::lock_guard<hp::Status> lock{status};
 
             payloadJson[F("initial")] = status.Zone1SetTemperature;
+            payloadJson[F("min_temp")] = hp::get_min_thermostat_temperature();
+            payloadJson[F("max_temp")] = hp::get_max_thermostat_temperature();
+            payloadJson[F("temp_unit")] = "C";
+            payloadJson[F("temp_step")] = hp::get_temperature_step();
+        }
+
+        JsonArray modes = payloadJson["modes"].to<JsonArray>();
+        modes.add(F("heat"));
+        modes.add(F("off"));
+
+        if (!publish_mqtt(discoveryTopic, doc, /* retain =*/true))
+        {
+            log_web(F("Failed to publish homeassistant climate entity auto-discover"));
+            return false;
+        }
+
+        return true;
+    }
+
+    bool publish_ha_climate_z2_auto_discover()
+    {
+        // https://www.home-assistant.io/integrations/climate.mqtt/
+        String uniqueName = unique_entity_name(F("climate_control_z2"));
+
+        const auto& config = config_instance();
+        String discoveryTopic = String(F("homeassistant/climate/")) + uniqueName + F("/config");
+        String stateTopic = config.MqttTopic + "/" + uniqueName + F("/state");
+        String tempCmdTopic = config.MqttTopic + "/" + uniqueName + F("/temp_cmd");
+
+        JsonDocument doc;
+        JsonObject payloadJson = doc.to<JsonObject>();
+        payloadJson[F("name")] = uniqueName;
+        payloadJson[F("unique_id")] = uniqueName;
+        payloadJson[F("icon")] = F("mdi:heat-pump-outline");
+
+        add_discovery_device_object(payloadJson);
+
+        payloadJson[F("mode_stat_t")] = stateTopic;
+        payloadJson[F("mode_stat_tpl")] = get_mode_status_template();
+        payloadJson[F("act_t")] = stateTopic;
+        payloadJson[F("act_tpl")] = get_action_status_template();
+        payloadJson[F("temp_stat_t")] = stateTopic;
+        payloadJson[F("temp_stat_tpl")] = get_temperature_status_template();
+        payloadJson[F("curr_temp_t")] = stateTopic;
+        payloadJson[F("curr_temp_tpl")] = get_current_temperature_status_template();
+        payloadJson[F("temp_cmd_t")] = tempCmdTopic;
+        payloadJson[F("temp_cmd_tpl")] = F("{{ value|float }}");
+        payloadJson[F("temp_cmd_tpl")] = F("{{ value }}");
+
+        {
+            auto& status = hp::get_status();
+            std::lock_guard<hp::Status> lock{status};
+
+            payloadJson[F("initial")] = status.Zone2SetTemperature;
             payloadJson[F("min_temp")] = hp::get_min_thermostat_temperature();
             payloadJson[F("max_temp")] = hp::get_max_thermostat_temperature();
             payloadJson[F("temp_unit")] = "C";
@@ -897,6 +1013,9 @@ off
         if (!publish_ha_climate_auto_discover())
             return;
 
+        if (!publish_ha_climate_z2_auto_discover())
+            return;
+
         if (!publish_ha_set_z1_flow_target_auto_discover())
             return;
 
@@ -1058,6 +1177,33 @@ off
         return true;
     }
 
+    bool publish_z2_climate_status()
+    {
+        JsonDocument doc;
+        JsonObject json = doc.to<JsonObject>();
+
+
+        {
+            auto& status = hp::get_status();
+            std::lock_guard<hp::Status> lock{status};
+
+            json[F("temperature")] = round2(status.Zone2SetTemperature);
+            json[F("curr_temp")] = round2(status.Zone2RoomTemperature);
+            json[F("mode")] = status.ha_mode_as_string();
+            json[F("action")] = status.ha_action_as_string();
+        }
+
+        const auto& config = config_instance();
+        String stateTopic = config.MqttTopic + "/" + unique_entity_name(F("climate_control_z2")) + F("/state");
+        if (!publish_mqtt(stateTopic, doc))
+        {
+            log_web(F("Failed to publish MQTT state for: %s"), unique_entity_name(F("climate_control_z2")).c_str());
+            return false;
+        }
+
+        return true;
+    }
+
     bool publish_binary_sensor_status(const String& name, bool on)
     {
         String state = on ? F("on") : F("off");
@@ -1092,6 +1238,9 @@ off
             return;
 
         if (!publish_climate_status())
+            return;
+
+        if (!publish_z2_climate_status())
             return;
 
         auto& status = hp::get_status();
@@ -1270,6 +1419,13 @@ off
             if (!mqttClient.subscribe(tempCmdTopic))
             {
                 log_web(F("Failed to subscribe to temperature command topic!"));
+                return false;
+            }
+
+            String z2TempCmdTopic = config.MqttTopic + "/" + unique_entity_name(F("climate_control_z2")) + F("/temp_cmd");
+            if (!mqttClient.subscribe(z2TempCmdTopic))
+            {
+                log_web(F("Failed to subscribe to Z2 temperature command topic!"));
                 return false;
             }
 
